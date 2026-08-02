@@ -40,3 +40,12 @@ export async function pushRemote(userId: string, snapshot: Snapshot) {
     );
   if (error) throw error;
 }
+
+/** Stable stringify so key ordering (JSONB reorders keys) never looks like a change. */
+export function canonical(snapshot: Snapshot): string {
+  return JSON.stringify(
+    Object.keys(snapshot)
+      .sort()
+      .map((k) => [k, snapshot[k]]),
+  );
+}

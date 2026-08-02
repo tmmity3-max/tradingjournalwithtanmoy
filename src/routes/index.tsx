@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { pullRemote, pushRemote, readLocal, writeLocal, type Snapshot } from "@/lib/journal-sync";
+import { canonical, pullRemote, pushRemote, readLocal, writeLocal, type Snapshot } from "@/lib/journal-sync";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -32,6 +32,7 @@ function JournalPage() {
   const [status, setStatus] = useState<"synced" | "saving">("synced");
   const [email, setEmail] = useState<string | null>(null);
   const lastJson = useRef<string>("");
+  const lastPushAt = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
@@ -52,10 +53,10 @@ function JournalPage() {
       const local = readLocal();
       if (remote && Object.keys(remote).length > 0) {
         writeLocal(remote);
-        lastJson.current = JSON.stringify(remote);
+        lastJson.current = canonical(remote);
       } else {
         await pushRemote(user.id, local);
-        lastJson.current = JSON.stringify(local);
+        lastJson.current = canonical(local);
       }
       if (cancelled) return;
       setReady(true);
@@ -63,16 +64,18 @@ function JournalPage() {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const schedulePush = () => {
         const snap = readLocal();
-        const json = JSON.stringify(snap);
+        const json = canonical(snap);
         if (json === lastJson.current) return;
         setStatus("saving");
         if (timer) clearTimeout(timer);
         timer = setTimeout(async () => {
           const latest = readLocal();
-          const latestJson = JSON.stringify(latest);
+          const latestJson = canonical(latest);
           lastJson.current = latestJson;
           try {
+            lastPushAt.current = Date.now();
             await pushRemote(user.id, latest);
+            lastPushAt.current = Date.now();
           } catch (e) {
             console.error(e);
           }
@@ -100,8 +103,18 @@ function JournalPage() {
           (payload) => {
             const incoming = (payload.new as { data?: Snapshot } | null)?.data;
             if (!incoming) return;
-            const json = JSON.stringify(incoming);
+            const json = canonical(incoming);
             if (json === lastJson.current) return;
+            // Ignore the echo of our own recent write.
+            if (Date.now() - lastPushAt.current < 4000) {
+              lastJson.current = json;
+              return;
+            }
+            // Only act if the incoming data really differs from what is on this device.
+            if (json === canonical(readLocal())) {
+              lastJson.current = json;
+              return;
+            }
             lastJson.current = json;
             writeLocal(incoming);
             if (iframeRef.current) {
