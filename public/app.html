@@ -703,7 +703,12 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   <!-- ── POSITION SIZER ── -->
   <div id="view-risk" style="display:none">
     <div class="risk-panel">
-      <div class="card-title">🎯 Position Sizer &amp; Open Risk Calculator</div>
+      <div class="card-title">🎯 Position Sizer &amp; Open Risk Calculator
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn-hdr" onclick="clearPositionSizer()">✕ Clear</button>
+          <button class="btn-hdr" onclick="openPsSettings()">⚙ Settings</button>
+        </div>
+      </div>
       <div class="risk-grid">
         <div class="risk-cell"><label>Symbol</label><input type="text" id="ps-symbol" placeholder="e.g. RELIANCE" oninput="calcPositionSize()"></div>
         <div class="risk-cell"><label>Exchange</label><select id="ps-exch" onchange="calcPositionSize()"><option>NSE</option><option>BSE</option><option>NFO</option><option>MCX</option><option>CRYPTO</option></select></div>
