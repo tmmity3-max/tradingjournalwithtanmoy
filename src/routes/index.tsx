@@ -183,6 +183,7 @@ function JournalPage() {
           Sign out
         </button>
       </div>
-    </div>
+    </main>
+
   );
 }
