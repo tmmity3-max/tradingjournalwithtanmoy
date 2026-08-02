@@ -77,14 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Trading Journal Pro — Cloud Synced Trade Log" },
+      {
+        name: "description",
+        content:
+          "Trading Journal Pro is a cloud-synced trade log for tracking trades, rules, risk and P&L across all your devices.",
+      },
+      { property: "og:site_name", content: "Trading Journal Pro" },
+      { property: "og:title", content: "Trading Journal Pro — Cloud Synced Trade Log" },
+      {
+        property: "og:description",
+        content:
+          "Trading Journal Pro is a cloud-synced trade log for tracking trades, rules, risk and P&L across all your devices.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -93,7 +100,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Trading Journal Pro",
+          applicationCategory: "FinanceApplication",
+          operatingSystem: "Web",
+          description:
+            "Cloud-synced trading journal for tracking trades, rules, risk and P&L across devices.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        }),
+      },
+    ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

@@ -18,9 +18,12 @@ export const Route = createFileRoute("/auth")({
         content: "Sign in to Trading Journal Pro to access your trade log on any device.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://tradingjournalwithtanmoy.lovable.app/auth" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://tradingjournalwithtanmoy.lovable.app/auth" }],
   }),
+
   component: AuthPage,
 });
 
