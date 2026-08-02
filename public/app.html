@@ -282,19 +282,36 @@ table.trades tbody td:last-child{border-right:none}
   pointer-events:none;
 }
 .quote-bg-bull{
-  position:absolute;right:28px;top:50%;transform:translateY(-50%);
-  font-size:5rem;opacity:.06;pointer-events:none;user-select:none;
+  position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  width:190px;height:130px;border-radius:14px;overflow:hidden;
+  pointer-events:none;user-select:none;z-index:0;
+  box-shadow:0 8px 26px rgba(0,0,0,.45);
+  border:1px solid rgba(255,255,255,.12);
 }
+.quote-bg-bull img{width:100%;height:100%;object-fit:cover;display:block;opacity:.95;
+  transform:scale(1.6);transform-origin:center}
 .quote-eyebrow{font-size:.68rem;font-weight:700;letter-spacing:2px;
   text-transform:uppercase;color:rgba(245,158,11,.85);margin-bottom:2px}
 .quote-marks{font-size:3.5rem;line-height:.6;color:rgba(245,158,11,.4);
   font-family:Georgia,serif;position:absolute;top:18px;left:28px}
 .quote-text{font-size:1.13rem;font-weight:600;color:#fff;line-height:1.6;
-  font-style:italic;padding-left:8px;transition:opacity .4s,transform .4s;
+  font-style:italic;padding-left:8px;padding-right:230px;transition:opacity .4s,transform .4s;
   position:relative;z-index:1}
+.quote-author-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+  padding-left:8px;position:relative;z-index:1}
+.quote-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(245,158,11,.85),rgba(220,38,38,.85));
+  color:#fff;font-weight:800;font-size:1.05rem;letter-spacing:.5px;
+  border:2px solid rgba(245,158,11,.55);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.quote-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .quote-author{font-size:.82rem;font-weight:700;color:rgba(245,158,11,.9);
-  letter-spacing:.5px;text-align:right;position:relative;z-index:1}
+  letter-spacing:.5px;text-align:left;position:relative;z-index:1}
 .quote-author::before{content:'— '}
+@media (max-width:720px){
+  .quote-bg-bull{width:120px;height:88px;right:12px}
+  .quote-text{padding-right:145px}
+}
 .quote-controls{display:flex;align-items:center;gap:10px;margin-top:6px;position:relative;z-index:1}
 .quote-dots{display:flex;gap:5px;flex:1}
 .quote-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);
@@ -605,11 +622,14 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
 
       <!-- MOTIVATIONAL QUOTE WIDGET -->
       <div class="quote-widget" onclick="quoteNext()" title="Click for next quote">
-        <div class="quote-bg-bull">🐂</div>
+        <div class="quote-bg-bull"><img src="/__l5e/assets-v1/2e0e82c6-92ee-463f-81f8-499866611918/bull.webp" alt="Bull market artwork"></div>
         <div class="quote-marks">"</div>
         <div class="quote-eyebrow">💡 Trading Wisdom</div>
         <div class="quote-text" id="quote-text">Loading...</div>
-        <div class="quote-author" id="quote-author"></div>
+        <div class="quote-author-wrap">
+          <div class="quote-avatar" id="quote-avatar"></div>
+          <div class="quote-author" id="quote-author"></div>
+        </div>
         <div class="quote-controls">
           <div class="quote-dots" id="quote-dots"></div>
           <div class="quote-auto-badge" id="quote-auto-badge">⏵ Auto</div>
@@ -3722,6 +3742,11 @@ function quoteShow(idx){
   setTimeout(()=>{
     textEl.textContent = q.text;
     authorEl.textContent = q.author;
+    const avatarEl = document.getElementById('quote-avatar');
+    if(avatarEl){
+      avatarEl.textContent = q.author.replace(/\(.*\)/,'').trim().split(/\s+/)
+        .slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    }
     textEl.classList.remove('quote-fade-out');
   }, 220);
 
