@@ -2238,7 +2238,7 @@ function calcPositionSize(){
   const posPct=posVal/cap;
   const rr=target&&price?Math.abs(target-price)/slDiff:null;
   const openRisk=trades.filter(t=>t.status==='OPEN').reduce((s,t)=>s+liveRisk(t),0);
-  const availRisk=riskAmt*3-openRisk;
+  const availRisk=cap*psSettings.maxTor/100-openRisk;
   document.getElementById('ps-risk-amt').textContent=fmt(riskAmt);
   document.getElementById('ps-sl-pct').textContent=fmtPct(slPct);
   document.getElementById('ps-qty').textContent=qty||'—';
