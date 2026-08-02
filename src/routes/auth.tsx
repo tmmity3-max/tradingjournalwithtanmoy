@@ -5,6 +5,10 @@ import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s['next'] === "string" && s['next'].startsWith("/") ? s['next'] : undefined,
+  }),
+
   head: () => ({
     meta: [
       { title: "Sign in — Trading Journal Pro" },
@@ -29,6 +33,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,30 +41,37 @@ function AuthPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const goNext = () => {
+    if (next) window.location.replace(next);
+    else navigate({ to: "/", replace: true });
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/", replace: true });
+      if (data.session) goNext();
     });
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, next]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     setMessage(null);
+    const returnTo = next ? window.location.origin + next : window.location.origin;
     if (mode === "signup") {
       const { data, error: err } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: returnTo },
       });
       if (err) setError(err.message);
       else if (!data.session) setMessage("Check your email to confirm your account, then sign in.");
-      else navigate({ to: "/", replace: true });
+      else goNext();
     } else {
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) setError(err.message);
-      else navigate({ to: "/", replace: true });
+      else goNext();
     }
     setBusy(false);
   };
@@ -67,15 +79,16 @@ function AuthPage() {
   const google = async () => {
     setError(null);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: next ? window.location.origin + next : window.location.origin,
     });
     if (result.error) {
       setError("Google sign-in failed. Please try again.");
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/", replace: true });
+    goNext();
   };
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">

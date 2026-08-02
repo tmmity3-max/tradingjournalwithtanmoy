@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://fjzzpowgbjzlwbzaputy.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "sync-go",
+      "version": "0.1.0",
+      "title": "Sync & Go"
+    },
+    "tools": [
+      {
+        "name": "list_journal_keys",
+        "title": "List journal keys",
+        "description": "List every stored key in the signed-in user's trading journal, with the size of each stored value.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "length": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "key",
+                  "length"
+                ]
+              }
+            }
+          },
+          "required": [
+            "keys"
+          ]
+        }
+      },
+      {
+        "name": "read_journal_value",
+        "title": "Read journal value",
+        "description": "Read one stored value from the signed-in user's trading journal by key (e.g. a trades list or settings entry). Use list_journal_keys first to discover keys.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Journal storage key, as returned by list_journal_keys."
+            }
+          },
+          "required": [
+            "key"
+          ]
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "value": {}
+          },
+          "required": [
+            "key",
+            "value"
+          ]
+        }
+      },
+      {
+        "name": "write_journal_value",
+        "title": "Write journal value",
+        "description": "Create or replace one stored value in the signed-in user's trading journal. The value must be the exact string the journal app expects (usually JSON). Overwrites any existing value for that key.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Journal storage key. Must start with the journal prefix 'tj_'."
+            },
+            "value": {
+              "type": "string",
+              "description": "Raw string value to store, typically JSON text."
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ]
+        },
+        "outputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "length": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "key",
+            "length"
+          ]
+        }
+      }
+    ]
+  }
+}
