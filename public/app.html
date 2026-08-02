@@ -1210,6 +1210,27 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   </div>
 </div>
 
+<!-- ── POSITION SIZER SETTINGS MODAL ── -->
+<div class="modal-overlay" id="ps-settings-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><h2>⚙ Position Sizer Settings</h2><div class="sub">Controls how the available risk budget is calculated</div></div>
+      <button class="modal-close" onclick="closeModal('ps-settings-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row three">
+        <div class="form-group"><label>Max Total Open Risk (% of capital)</label><input type="number" id="set-max-tor" step="0.1" placeholder="3"></div>
+        <div class="form-group"><label>Default Risk per Trade (%)</label><input type="number" id="set-def-rpt" step="0.1" placeholder="1"></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-2)">Available Risk Budget = Capital × Max Total Open Risk % − Current Open Risk</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('ps-settings-modal')">Cancel</button>
+      <button class="btn-save" onclick="savePsSettings()">💾 Save Settings</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── TRADE DETAILS DRAWER ── -->
 <div class="modal-overlay drawer-overlay" id="trade-details-drawer">
   <div class="modal drawer">
