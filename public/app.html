@@ -703,7 +703,12 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   <!-- ── POSITION SIZER ── -->
   <div id="view-risk" style="display:none">
     <div class="risk-panel">
-      <div class="card-title">🎯 Position Sizer &amp; Open Risk Calculator</div>
+      <div class="card-title">🎯 Position Sizer &amp; Open Risk Calculator
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn-hdr" onclick="clearPositionSizer()">✕ Clear</button>
+          <button class="btn-hdr" onclick="openPsSettings()">⚙ Settings</button>
+        </div>
+      </div>
       <div class="risk-grid">
         <div class="risk-cell"><label>Symbol</label><input type="text" id="ps-symbol" placeholder="e.g. RELIANCE" oninput="calcPositionSize()"></div>
         <div class="risk-cell"><label>Exchange</label><select id="ps-exch" onchange="calcPositionSize()"><option>NSE</option><option>BSE</option><option>NFO</option><option>MCX</option><option>CRYPTO</option></select></div>
@@ -720,7 +725,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
         <div class="risk-cell"><label>R:R Ratio</label><div class="rval gold" id="ps-rr-val">—</div></div>
         <div class="risk-cell"><label>Current Open Risk (₹)</label><div class="rval red" id="ps-open-risk">—</div></div>
         <div class="risk-cell"><label>Open Risk %</label><div class="rval" id="ps-open-risk-pct">—</div></div>
-        <div class="risk-cell"><label>Available Risk Budget</label><div class="rval green" id="ps-avail-risk">—</div></div>
+        <div class="risk-cell"><label>Available Risk Budget <span style="font-weight:400;text-transform:none;font-size:.68rem" id="ps-tor-label"></span></label><div class="rval green" id="ps-avail-risk">—</div></div>
       </div>
       <div style="padding:13px 18px;border-top:1px solid var(--border);text-align:right">
         <button class="btn-primary" onclick="usePositionSizer()">＋ Add as Trade Entry</button>
@@ -1201,6 +1206,27 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('target-modal')">Cancel</button>
       <button class="btn-save" onclick="saveTargetUpdate()">🎯 Update Target</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── POSITION SIZER SETTINGS MODAL ── -->
+<div class="modal-overlay" id="ps-settings-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><h2>⚙ Position Sizer Settings</h2><div class="sub">Controls how the available risk budget is calculated</div></div>
+      <button class="modal-close" onclick="closeModal('ps-settings-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row three">
+        <div class="form-group"><label>Max Total Open Risk (% of capital)</label><input type="number" id="set-max-tor" step="0.1" placeholder="3"></div>
+        <div class="form-group"><label>Default Risk per Trade (%)</label><input type="number" id="set-def-rpt" step="0.1" placeholder="1"></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-2)">Available Risk Budget = Capital × Max Total Open Risk % − Current Open Risk</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('ps-settings-modal')">Cancel</button>
+      <button class="btn-save" onclick="savePsSettings()">💾 Save Settings</button>
     </div>
   </div>
 </div>
@@ -2165,16 +2191,43 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 /* ══════════════════════════════════════════════
    POSITION SIZER
 ══════════════════════════════════════════════ */
+let psSettings = Object.assign({maxTor:3, defRpt:1}, JSON.parse(localStorage.getItem('tj_ps_settings')||'{}'));
+function openPsSettings(){
+  document.getElementById('set-max-tor').value=psSettings.maxTor;
+  document.getElementById('set-def-rpt').value=psSettings.defRpt;
+  openModal('ps-settings-modal');
+}
+function savePsSettings(){
+  psSettings.maxTor=parseFloat(document.getElementById('set-max-tor').value)||3;
+  psSettings.defRpt=parseFloat(document.getElementById('set-def-rpt').value)||1;
+  localStorage.setItem('tj_ps_settings',JSON.stringify(psSettings));
+  closeModal('ps-settings-modal');
+  calcPositionSize();
+}
+function clearPositionSizer(){
+  ['ps-symbol','ps-price','ps-sl','ps-target'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ps-rpt').value=psSettings.defRpt;
+  document.getElementById('ps-exch').selectedIndex=0;
+  calcPositionSize();
+}
 function updatePsCapital(){
   document.getElementById('ps-capital').textContent=fmt(capital());
+  const rptEl=document.getElementById('ps-rpt');
+  if(rptEl&&!rptEl.dataset.touched){rptEl.value=psSettings.defRpt;rptEl.dataset.touched='1';}
   calcPositionSize();
 }
 function calcPositionSize(){
   const price=parseFloat(document.getElementById('ps-price').value)||0;
   const sl=parseFloat(document.getElementById('ps-sl').value)||0;
-  const rptPct=parseFloat(document.getElementById('ps-rpt').value)||1;
+  const rptPct=parseFloat(document.getElementById('ps-rpt').value)||psSettings.defRpt||1;
   const target=parseFloat(document.getElementById('ps-target').value)||0;
   const cap=capital();
+  const torLbl=document.getElementById('ps-tor-label');
+  if(torLbl)torLbl.textContent='(max '+psSettings.maxTor+'%)';
+  const openRisk0=trades.filter(t=>t.status==='OPEN').reduce((s,t)=>s+liveRisk(t),0);
+  document.getElementById('ps-open-risk').textContent=fmt(openRisk0);
+  document.getElementById('ps-open-risk-pct').textContent=fmtPct(cap?openRisk0/cap:0);
+  document.getElementById('ps-avail-risk').textContent=fmt(Math.max(0,cap*psSettings.maxTor/100-openRisk0));
   if(!price||!sl||price===sl){
     ['ps-risk-amt','ps-sl-pct','ps-qty','ps-pos-val','ps-pos-pct','ps-rr-val'].forEach(id=>document.getElementById(id).textContent='—');
     return;
@@ -2187,7 +2240,7 @@ function calcPositionSize(){
   const posPct=posVal/cap;
   const rr=target&&price?Math.abs(target-price)/slDiff:null;
   const openRisk=trades.filter(t=>t.status==='OPEN').reduce((s,t)=>s+liveRisk(t),0);
-  const availRisk=riskAmt*3-openRisk;
+  const availRisk=cap*psSettings.maxTor/100-openRisk;
   document.getElementById('ps-risk-amt').textContent=fmt(riskAmt);
   document.getElementById('ps-sl-pct').textContent=fmtPct(slPct);
   document.getElementById('ps-qty').textContent=qty||'—';
