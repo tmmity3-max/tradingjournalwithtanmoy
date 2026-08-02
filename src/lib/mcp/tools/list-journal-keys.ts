@@ -1,4 +1,5 @@
 import { defineTool } from "@lovable.dev/mcp-js";
+import { z } from "zod";
 import { loadSnapshot } from "../state";
 
 export default defineTool({
