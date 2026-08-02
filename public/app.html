@@ -2212,6 +2212,8 @@ function clearPositionSizer(){
 }
 function updatePsCapital(){
   document.getElementById('ps-capital').textContent=fmt(capital());
+  const rptEl=document.getElementById('ps-rpt');
+  if(rptEl&&!rptEl.dataset.touched){rptEl.value=psSettings.defRpt;rptEl.dataset.touched='1';}
   calcPositionSize();
 }
 function calcPositionSize(){
