@@ -20,8 +20,11 @@ export const Route = createFileRoute("/")({
           "Track trades, rules and P&L in Trading Journal Pro. Sign in once and your journal syncs across every device.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://tradingjournalwithtanmoy.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://tradingjournalwithtanmoy.lovable.app/" }],
+
   }),
   component: JournalPage,
 });
@@ -159,13 +162,15 @@ function JournalPage() {
   }
 
   return (
-    <div className="relative h-screen w-screen">
+    <main className="relative h-screen w-screen">
+      <h1 className="sr-only">Trading Journal Pro — cloud-synced trade log</h1>
       <iframe
         ref={iframeRef}
         title="Trading Journal Pro"
         src="/app.html"
         className="h-full w-full border-0"
       />
+
       <div className="pointer-events-auto fixed bottom-3 right-3 z-50 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs shadow-lg backdrop-blur">
         <span className="text-muted-foreground">
           {status === "saving" ? "Saving…" : "Synced"}
@@ -178,6 +183,7 @@ function JournalPage() {
           Sign out
         </button>
       </div>
-    </div>
+    </main>
+
   );
 }
