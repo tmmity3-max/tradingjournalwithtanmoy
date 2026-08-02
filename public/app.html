@@ -2191,6 +2191,25 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 /* ══════════════════════════════════════════════
    POSITION SIZER
 ══════════════════════════════════════════════ */
+let psSettings = Object.assign({maxTor:3, defRpt:1}, JSON.parse(localStorage.getItem('tj_ps_settings')||'{}'));
+function openPsSettings(){
+  document.getElementById('set-max-tor').value=psSettings.maxTor;
+  document.getElementById('set-def-rpt').value=psSettings.defRpt;
+  openModal('ps-settings-modal');
+}
+function savePsSettings(){
+  psSettings.maxTor=parseFloat(document.getElementById('set-max-tor').value)||3;
+  psSettings.defRpt=parseFloat(document.getElementById('set-def-rpt').value)||1;
+  localStorage.setItem('tj_ps_settings',JSON.stringify(psSettings));
+  closeModal('ps-settings-modal');
+  calcPositionSize();
+}
+function clearPositionSizer(){
+  ['ps-symbol','ps-price','ps-sl','ps-target'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ps-rpt').value=psSettings.defRpt;
+  document.getElementById('ps-exch').selectedIndex=0;
+  calcPositionSize();
+}
 function updatePsCapital(){
   document.getElementById('ps-capital').textContent=fmt(capital());
   calcPositionSize();
