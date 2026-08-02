@@ -2217,9 +2217,15 @@ function updatePsCapital(){
 function calcPositionSize(){
   const price=parseFloat(document.getElementById('ps-price').value)||0;
   const sl=parseFloat(document.getElementById('ps-sl').value)||0;
-  const rptPct=parseFloat(document.getElementById('ps-rpt').value)||1;
+  const rptPct=parseFloat(document.getElementById('ps-rpt').value)||psSettings.defRpt||1;
   const target=parseFloat(document.getElementById('ps-target').value)||0;
   const cap=capital();
+  const torLbl=document.getElementById('ps-tor-label');
+  if(torLbl)torLbl.textContent='(max '+psSettings.maxTor+'%)';
+  const openRisk0=trades.filter(t=>t.status==='OPEN').reduce((s,t)=>s+liveRisk(t),0);
+  document.getElementById('ps-open-risk').textContent=fmt(openRisk0);
+  document.getElementById('ps-open-risk-pct').textContent=fmtPct(cap?openRisk0/cap:0);
+  document.getElementById('ps-avail-risk').textContent=fmt(Math.max(0,cap*psSettings.maxTor/100-openRisk0));
   if(!price||!sl||price===sl){
     ['ps-risk-amt','ps-sl-pct','ps-qty','ps-pos-val','ps-pos-pct','ps-rr-val'].forEach(id=>document.getElementById(id).textContent='—');
     return;
