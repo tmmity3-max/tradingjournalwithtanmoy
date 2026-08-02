@@ -3741,6 +3741,11 @@ function quoteShow(idx){
   setTimeout(()=>{
     textEl.textContent = q.text;
     authorEl.textContent = q.author;
+    const avatarEl = document.getElementById('quote-avatar');
+    if(avatarEl){
+      avatarEl.textContent = q.author.replace(/\(.*\)/,'').trim().split(/\s+/)
+        .slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    }
     textEl.classList.remove('quote-fade-out');
   }, 220);
 
