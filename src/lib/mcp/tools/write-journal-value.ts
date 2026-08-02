@@ -14,6 +14,7 @@ export default defineTool({
       .describe("Journal storage key. Must start with the journal prefix 'tj_'."),
     value: z.string().describe("Raw string value to store, typically JSON text."),
   },
+  outputSchema: { key: z.string(), length: z.number() },
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ key, value }, ctx) => {
     if (!ctx.isAuthenticated()) {

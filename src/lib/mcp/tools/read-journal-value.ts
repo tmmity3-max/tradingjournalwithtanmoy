@@ -10,6 +10,7 @@ export default defineTool({
   inputSchema: {
     key: z.string().min(1).describe("Journal storage key, as returned by list_journal_keys."),
   },
+  outputSchema: { key: z.string(), value: z.unknown() },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ key }, ctx) => {
     if (!ctx.isAuthenticated()) {

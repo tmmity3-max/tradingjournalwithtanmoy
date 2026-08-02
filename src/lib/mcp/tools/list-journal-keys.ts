@@ -7,6 +7,7 @@ export default defineTool({
   description:
     "List every stored key in the signed-in user's trading journal, with the size of each stored value.",
   inputSchema: {},
+  outputSchema: { keys: z.array(z.object({ key: z.string(), length: z.number() })) },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) {
