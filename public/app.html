@@ -3961,12 +3961,29 @@ setTimeout(quoteInit, 100);
 /* ══════════════════════════════════════════════
    TRADE CHARTS VIEW  (candlestick per trade)
 ══════════════════════════════════════════════ */
-let chartSettings = Object.assign({zoom:'1:1', size:'medium'}, JSON.parse(localStorage.getItem('tj_chart_settings')||'{}'));
-const ZOOM_MULT = {'x5':0.2,'x2':0.5,'1:1':1,'1:2':2,'1:5':5};
-const candleCache = {};
-let tcObserver = null;
+let chartSettings = Object.assign({size:'medium'}, JSON.parse(localStorage.getItem('tj_chart_settings')||'{}'));
+let tradeCharts = JSON.parse(localStorage.getItem('tj_trade_charts')||'{}');
+const tcUrlCache = {};
 
 function saveChartSettings(){ localStorage.setItem('tj_chart_settings', JSON.stringify(chartSettings)); }
+function saveTradeCharts(){ localStorage.setItem('tj_trade_charts', JSON.stringify(tradeCharts)); }
+
+/* ---- bridge to the parent app (handles cloud image storage) ---- */
+const tcPending = {}; let tcReqId = 0;
+window.addEventListener('message', (e)=>{
+  const d = e.data;
+  if(!d || !d.__tj || !tcPending[d.rid]) return;
+  tcPending[d.rid](d); delete tcPending[d.rid];
+});
+function tcCall(type, payload){
+  return new Promise(res=>{
+    const rid = ++tcReqId;
+    tcPending[rid] = res;
+    try{ parent.postMessage(Object.assign({__tj:1, type, rid}, payload||{}), '*'); }
+    catch(err){ delete tcPending[rid]; res({error:'bridge'}); return; }
+    setTimeout(()=>{ if(tcPending[rid]){ delete tcPending[rid]; res({error:'timeout'}); } }, 30000);
+  });
+}
 
 function toggleChartSettings(){
   const p=document.getElementById('tc-settings-pop');
@@ -3974,30 +3991,95 @@ function toggleChartSettings(){
   syncChartSettingsUI();
 }
 function syncChartSettingsUI(){
-  document.querySelectorAll('#tc-settings-pop [data-zoom]').forEach(el=>el.classList.toggle('on', el.dataset.zoom===chartSettings.zoom));
   document.querySelectorAll('#tc-settings-pop [data-size]').forEach(el=>el.classList.toggle('on', el.dataset.size===chartSettings.size));
 }
-function setChartZoom(z){ chartSettings.zoom=z; saveChartSettings(); syncChartSettingsUI(); renderTradeCharts(); }
 function setChartSize(s){ chartSettings.size=s; saveChartSettings(); syncChartSettingsUI(); renderTradeCharts(); }
-
-function tcTradeSymbolKey(t){ return (t.symbol||'').toUpperCase()+'|'+(t.exchange||'NSE'); }
-
-async function fetchCandles(symbol, exchange){
-  const key = symbol.toUpperCase()+'|'+(exchange||'NSE');
-  if(candleCache[key]) return candleCache[key];
-  const p = fetch(`/api/public/candles?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange||'NSE')}`)
-    .then(r=>r.json())
-    .then(d=>Array.isArray(d.candles)?d.candles:[])
-    .catch(()=>[]);
-  candleCache[key]=p;
-  return p;
-}
 
 function tcTradeDates(t){
   const start = new Date(t.date||Date.now()).getTime();
   const exitDates=(t.exits||[]).map(e=>new Date(e.date).getTime()).filter(x=>!isNaN(x));
   const end = t.status==='CLOSED' && exitDates.length ? Math.max(...exitDates) : Date.now();
   return {start, end:Math.max(end,start)};
+}
+
+/* ---- image handling ---- */
+function tcCompress(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onerror=()=>rej(new Error('read'));
+    fr.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>rej(new Error('img'));
+      img.onload=()=>{
+        const maxW=1600;
+        const scale=Math.min(1, maxW/img.width);
+        const c=document.createElement('canvas');
+        c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+        const cx=c.getContext('2d');
+        cx.fillStyle='#ffffff'; cx.fillRect(0,0,c.width,c.height);
+        cx.drawImage(img,0,0,c.width,c.height);
+        res(c.toDataURL('image/jpeg',0.82));
+      };
+      img.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+function tcPickImage(id){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.onchange=async ()=>{
+    const f=inp.files && inp.files[0];
+    if(!f) return;
+    const card=document.querySelector(`.tc-card[data-tid="${id}"]`);
+    const shot=card && card.querySelector('.tc-shot');
+    if(shot) shot.innerHTML='<div class="tc-ph">Uploading…</div>';
+    try{
+      const dataUrl=await tcCompress(f);
+      const r=await tcCall('tj-chart-upload',{tradeId:String(id), dataUrl});
+      if(r.error||!r.path) throw new Error(r.error||'upload');
+      const prev=tradeCharts[id]||{};
+      tradeCharts[id]=Object.assign({}, prev, {path:r.path});
+      delete tcUrlCache[r.path];
+      saveTradeCharts();
+      renderTradeCharts();
+    }catch(err){
+      if(shot) shot.innerHTML='<div class="tc-ph">Upload failed — try again</div>';
+    }
+  };
+  inp.click();
+}
+
+function tcRemoveImage(id){
+  const rec=tradeCharts[id];
+  if(!rec||!rec.path) return;
+  if(!confirm('Remove this chart image?')) return;
+  tcCall('tj-chart-delete',{path:rec.path});
+  delete rec.path;
+  if(!rec.remarks) delete tradeCharts[id];
+  saveTradeCharts();
+  renderTradeCharts();
+}
+
+function tcSaveRemarks(id, el){
+  const rec=tradeCharts[id]||{};
+  rec.remarks=el.value;
+  if(!rec.remarks && !rec.path) delete tradeCharts[id]; else tradeCharts[id]=rec;
+  saveTradeCharts();
+}
+
+async function tcLoadImage(card, id){
+  const rec=tradeCharts[id];
+  const shot=card.querySelector('.tc-shot');
+  if(!rec||!rec.path||!shot) return;
+  let url=tcUrlCache[rec.path];
+  if(!url){
+    const r=await tcCall('tj-chart-url',{path:rec.path});
+    if(r.error||!r.url){ shot.innerHTML='<div class="tc-ph">Image unavailable</div>'; return; }
+    url=r.url; tcUrlCache[rec.path]=url;
+  }
+  shot.innerHTML=`<img src="${url}" alt="Chart screenshot" onclick="window.open('${url}','_blank')">`;
 }
 
 function renderTradeCharts(){
@@ -4015,7 +4097,7 @@ function renderTradeCharts(){
   document.getElementById('tc-count').textContent = rows.length ? `Showing ${rows.length} trade${rows.length>1?'s':''}` : '';
 
   if(!rows.length){
-    grid.innerHTML='<div class="tc-empty">No trades to chart yet. Add a trade to see its candlestick chart here.</div>';
+    grid.innerHTML='<div class="tc-empty">No trades yet. Add a trade, then attach its chart screenshot here.</div>';
     return;
   }
 
@@ -4027,161 +4109,30 @@ function renderTradeCharts(){
     const {start,end}=tcTradeDates(t);
     const days=Math.max(0,Math.round((end-start)/86400000));
     const cls = pnl>0?'pnl-pos':pnl<0?'pnl-neg':'pnl-zero';
+    const rec = tradeCharts[t.id]||{};
+    const hasImg = !!rec.path;
+    const remarks = (rec.remarks||'').replace(/"/g,'&quot;');
     return `<div class="tc-card" data-tid="${t.id}">
-      <div class="tc-canvas-wrap"><canvas></canvas><div class="tc-load">Loading chart…</div></div>
+      <div class="tc-shot-wrap">
+        <div class="tc-shot">${hasImg?'<div class="tc-ph">Loading image…</div>':'<div class="tc-ph tc-drop" onclick="tcPickImage('+t.id+')">📷 Click to attach chart screenshot</div>'}</div>
+        <div class="tc-shot-actions">
+          <button onclick="tcPickImage(${t.id})">${hasImg?'↻ Replace':'＋ Add'}</button>
+          ${hasImg?`<button onclick="tcRemoveImage(${t.id})">🗑 Remove</button>`:''}
+        </div>
+      </div>
       <div class="tc-meta">
         <div class="tc-sym"><b>${t.symbol}</b> <span>· ${t.exchange||''} · ${t.type}</span></div>
         <div class="tc-sub">${t.date||''}, ${days} Days, ${t.status==='CLOSED'?'100.00% Closed':'Open'}</div>
         <div class="tc-pnl ${cls}">${fmt(pnl)} ${pct!==null?`<span>(${pct.toFixed(2)}%)</span>`:''} ${r!==null?`<span>(${r.toFixed(1)}R)</span>`:''}</div>
+        <textarea class="tc-remarks" placeholder="Remarks / notes for this trade…" oninput="tcSaveRemarks(${t.id}, this)">${remarks}</textarea>
       </div>
     </div>`;
   }).join('');
 
-  if(tcObserver) tcObserver.disconnect();
-  tcObserver=new IntersectionObserver((entries)=>{
-    entries.forEach(en=>{
-      if(!en.isIntersecting) return;
-      tcObserver.unobserve(en.target);
-      const t=trades.find(x=>x.id===Number(en.target.dataset.tid));
-      if(t) drawTradeCard(en.target, t);
-    });
-  },{rootMargin:'200px'});
-  grid.querySelectorAll('.tc-card').forEach(c=>tcObserver.observe(c));
-}
-
-async function drawTradeCard(card, t){
-  const wrap=card.querySelector('.tc-canvas-wrap');
-  const canvas=card.querySelector('canvas');
-  const loader=card.querySelector('.tc-load');
-  const all=await fetchCandles(t.symbol, t.exchange);
-  if(!all.length){ loader.textContent='Price data unavailable for '+t.symbol; return; }
-  loader.style.display='none';
-
-  const {start,end}=tcTradeDates(t);
-  const inTrade=all.filter(c=>c.t>=start-86400000 && c.t<=end+86400000);
-  const dur=Math.max(inTrade.length,5);
-  const pad=Math.max(8, Math.round(dur*(ZOOM_MULT[chartSettings.zoom]||1)));
-  let si=all.findIndex(c=>c.t>=start-86400000);
-  if(si<0) si=Math.max(0,all.length-dur);
-  let ei=all.findIndex(c=>c.t>end+86400000);
-  if(ei<0) ei=all.length-1;
-  const data=all.slice(Math.max(0,si-pad), Math.min(all.length, ei+pad+1));
-  if(!data.length){ loader.style.display='block'; loader.textContent='No candles in trade window'; return; }
-
-  const draw=()=>drawCandles(canvas, data, t);
-  draw();
-  if(!card._tcResize){ card._tcResize=true; window.addEventListener('resize', ()=>requestAnimationFrame(draw)); }
-}
-
-function drawCandles(canvas, data, t){
-  const wrap=canvas.parentElement;
-  const cssW=wrap.clientWidth, cssH=wrap.clientHeight;
-  if(!cssW||!cssH) return;
-  const dpr=window.devicePixelRatio||1;
-  canvas.width=cssW*dpr; canvas.height=cssH*dpr;
-  canvas.style.width=cssW+'px'; canvas.style.height=cssH+'px';
-  const ctx=canvas.getContext('2d');
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,cssW,cssH);
-
-  const dark=document.documentElement.getAttribute('data-theme')==='dark';
-  const grid=dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';
-  const axis=dark?'rgba(255,255,255,.45)':'rgba(0,0,0,.45)';
-  const up='#16a34a', down='#ef4444';
-
-  const padL=6, padR=58, padT=10, axisH=18;
-  const volH=Math.round((cssH-padT-axisH)*0.20);
-  const priceH=cssH-padT-axisH-volH-6;
-  const plotW=cssW-padL-padR;
-
-  const entryPrices=[t.avgBuy, ...(t.buyHistory||[]).map(b=>b.price)].filter(v=>v>0);
-  const exitPrices=(t.exits||[]).map(e=>e.price).filter(v=>v>0);
-  const lows=[...data.map(c=>c.l), ...entryPrices, ...exitPrices, t.sl].filter(v=>v>0);
-  const highs=[...data.map(c=>c.h), ...entryPrices, ...exitPrices, t.sl].filter(v=>v>0);
-  let min=Math.min(...lows), max=Math.max(...highs);
-  const spread=(max-min)||1; min-=spread*0.06; max+=spread*0.06;
-  const maxVol=Math.max(1,...data.map(c=>c.v||0));
-
-  const x=i=>padL+(i+0.5)*(plotW/data.length);
-  const y=p=>padT+priceH-((p-min)/(max-min))*priceH;
-  const bw=Math.max(1.2, Math.min(9, (plotW/data.length)*0.62));
-
-  // grid lines
-  ctx.strokeStyle=grid; ctx.lineWidth=1;
-  for(let g=0;g<=4;g++){
-    const gy=padT+(priceH/4)*g;
-    ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(padL+plotW,gy); ctx.stroke();
-  }
-
-  // candles
-  data.forEach((c,i)=>{
-    const col=c.c>=c.o?up:down;
-    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
-    const cx=Math.round(x(i))+0.5;
-    ctx.beginPath(); ctx.moveTo(cx,y(c.h)); ctx.lineTo(cx,y(c.l)); ctx.stroke();
-    const yo=y(c.o), yc=y(c.c);
-    ctx.fillRect(cx-bw/2, Math.min(yo,yc), bw, Math.max(1.2,Math.abs(yc-yo)));
-    // volume
-    const vh=((c.v||0)/maxVol)*volH;
-    ctx.globalAlpha=.55;
-    ctx.fillRect(cx-bw/2, padT+priceH+6+volH-vh, bw, vh);
-    ctx.globalAlpha=1;
+  grid.querySelectorAll('.tc-card').forEach(c=>{
+    const id=Number(c.dataset.tid);
+    if(tradeCharts[id] && tradeCharts[id].path) tcLoadImage(c, id);
   });
-
-  const tag=(price,text,color)=>{
-    if(!(price>0)) return;
-    const py=y(price);
-    if(py<padT-4||py>padT+priceH+4) return;
-    ctx.font='600 9px system-ui,-apple-system,sans-serif';
-    const w=ctx.measureText(text).width+8;
-    ctx.fillStyle=color;
-    ctx.fillRect(cssW-padR+4, py-7, Math.min(w, padR-8), 13);
-    ctx.fillStyle='#fff';
-    ctx.fillText(text, cssW-padR+8, py+2.5);
-  };
-  const hline=(price,color,dash)=>{
-    if(!(price>0)) return;
-    const py=y(price);
-    if(py<padT||py>padT+priceH) return;
-    ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle=color; ctx.lineWidth=1.2;
-    ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(padL+plotW,py); ctx.stroke(); ctx.restore();
-  };
-
-  // SL / entry / exit levels
-  hline(t.sl, '#3b82f6', [4,3]); tag(t.sl,'SL','#3b82f6');
-  hline(t.avgBuy, up, [2,3]); tag(t.avgBuy,'E '+fmtN(t.avgBuy), up);
-  if(exitPrices.length){
-    const avgExit=exitPrices.reduce((a,b)=>a+b,0)/exitPrices.length;
-    hline(avgExit, down, [2,3]); tag(avgExit,'X '+fmtN(avgExit), down);
-  }
-
-  // entry / exit markers on the timeline
-  const nearest=(ms)=>{
-    let bi=0,bd=Infinity;
-    data.forEach((c,i)=>{const d=Math.abs(c.t-ms); if(d<bd){bd=d;bi=i;}});
-    return bd<=5*86400000?bi:-1;
-  };
-  const marker=(ms,price,color,up_)=>{
-    const i=nearest(ms); if(i<0||!(price>0)) return;
-    const mx=x(i), my=y(price);
-    ctx.fillStyle=color; ctx.beginPath();
-    ctx.moveTo(mx, my+(up_?7:-7)); ctx.lineTo(mx-4.5, my+(up_?13:-13)); ctx.lineTo(mx+4.5, my+(up_?13:-13));
-    ctx.closePath(); ctx.fill();
-  };
-  marker(new Date(t.date).getTime(), t.avgBuy, up, true);
-  (t.buyHistory||[]).forEach(b=>marker(new Date(b.date).getTime(), b.price, up, true));
-  (t.exits||[]).forEach(e=>marker(new Date(e.date).getTime(), e.price, down, false));
-
-  // date axis
-  ctx.fillStyle=axis; ctx.font='9px system-ui,-apple-system,sans-serif';
-  const ticks=Math.min(5, data.length);
-  for(let k=0;k<ticks;k++){
-    const i=Math.round(k*(data.length-1)/Math.max(1,ticks-1));
-    const d=new Date(data[i].t);
-    const label=d.toLocaleDateString('en-IN',{month:'short',day:'numeric'});
-    const tx=Math.min(cssW-padR-24, Math.max(padL, x(i)-14));
-    ctx.fillText(label, tx, cssH-5);
-  }
 }
 
 document.addEventListener('click', (e)=>{
