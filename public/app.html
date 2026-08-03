@@ -717,11 +717,18 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     .tc-grid.tc-medium{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
     .tc-grid.tc-big{grid-template-columns:repeat(auto-fill,minmax(520px,1fr))}
     .tc-card{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:10px;overflow:hidden}
-    .tc-canvas-wrap{position:relative;width:100%;height:200px}
-    .tc-grid.tc-small .tc-canvas-wrap{height:150px}
-    .tc-grid.tc-big .tc-canvas-wrap{height:280px}
-    .tc-canvas-wrap canvas{width:100%;height:100%;display:block}
-    .tc-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;opacity:.6}
+    .tc-shot-wrap{position:relative}
+    .tc-shot{position:relative;width:100%;height:200px;border-radius:8px;overflow:hidden;background:rgba(125,125,125,.08);display:flex;align-items:center;justify-content:center}
+    .tc-grid.tc-small .tc-shot{height:150px}
+    .tc-grid.tc-big .tc-shot{height:300px}
+    .tc-shot img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
+    .tc-ph{font-size:.78rem;opacity:.6;text-align:center;padding:12px}
+    .tc-drop{cursor:pointer;border:1.5px dashed var(--border,#d1d5db);border-radius:8px;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+    .tc-drop:hover{background:rgba(125,125,125,.08)}
+    .tc-shot-actions{position:absolute;top:6px;right:6px;display:flex;gap:6px;opacity:0;transition:opacity .15s}
+    .tc-card:hover .tc-shot-actions{opacity:1}
+    .tc-shot-actions button{background:rgba(17,24,39,.78);color:#fff;border:0;border-radius:6px;padding:4px 8px;font-size:.7rem;font-weight:600;cursor:pointer}
+    .tc-remarks{width:100%;margin-top:8px;min-height:52px;resize:vertical;font:inherit;font-size:.78rem;padding:6px 8px;border:1px solid var(--border,#e5e7eb);border-radius:8px;background:transparent;color:inherit}
     .tc-meta{border-top:1px solid var(--border,#e5e7eb);margin-top:8px;padding-top:8px}
     .tc-sym{font-size:.85rem}.tc-sym span{font-weight:400;opacity:.65;font-size:.75rem}
     .tc-sub{font-size:.72rem;opacity:.65;margin-top:2px}
