@@ -700,6 +700,62 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     </div>
   </div>
 
+  <!-- ── TRADE CHARTS VIEW ── -->
+  <style>
+    .tc-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;position:relative}
+    .tc-toolbar .search-box{flex:1;min-width:200px}
+    .tc-set-btn{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:8px;padding:8px 12px;font-size:.82rem;font-weight:600;cursor:pointer;color:inherit}
+    .tc-pop{position:absolute;right:0;top:44px;z-index:60;background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.16);padding:10px 8px;min-width:150px;display:none}
+    .tc-pop h6{margin:4px 8px 6px;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+    .tc-pop button{display:flex;justify-content:space-between;width:100%;background:none;border:0;padding:6px 8px;border-radius:6px;font-size:.82rem;cursor:pointer;color:inherit}
+    .tc-pop button:hover{background:rgba(125,125,125,.14)}
+    .tc-pop button.on::after{content:'✓';font-weight:700;color:#16a34a}
+    .tc-pop hr{border:0;border-top:1px solid var(--border,#e5e7eb);margin:8px 4px}
+    .tc-grid{display:grid;gap:14px}
+    .tc-grid.tc-small{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .tc-grid.tc-medium{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+    .tc-grid.tc-big{grid-template-columns:repeat(auto-fill,minmax(520px,1fr))}
+    .tc-card{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:10px;overflow:hidden}
+    .tc-canvas-wrap{position:relative;width:100%;height:200px}
+    .tc-grid.tc-small .tc-canvas-wrap{height:150px}
+    .tc-grid.tc-big .tc-canvas-wrap{height:280px}
+    .tc-canvas-wrap canvas{width:100%;height:100%;display:block}
+    .tc-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;opacity:.6}
+    .tc-meta{border-top:1px solid var(--border,#e5e7eb);margin-top:8px;padding-top:8px}
+    .tc-sym{font-size:.85rem}.tc-sym span{font-weight:400;opacity:.65;font-size:.75rem}
+    .tc-sub{font-size:.72rem;opacity:.65;margin-top:2px}
+    .tc-pnl{font-size:.92rem;font-weight:700;margin-top:4px}
+    .tc-pnl span{font-size:.72rem;font-weight:600}
+    .tc-empty{padding:40px;text-align:center;opacity:.6;font-size:.85rem}
+    .tc-count{font-size:.75rem;opacity:.6;margin-top:12px}
+  </style>
+  <div id="view-charts" style="display:none">
+    <div class="tc-toolbar">
+      <input class="search-box" id="tc-search" type="text" placeholder="🔍  Search symbol or ID…" oninput="renderTradeCharts()">
+      <select class="filter-sel" id="tc-status" onchange="renderTradeCharts()">
+        <option value="">All Trades</option><option value="OPEN">Open</option><option value="CLOSED">Closed</option>
+      </select>
+      <button class="tc-set-btn" id="tc-settings-btn" onclick="toggleChartSettings()">⚙ Chart Settings</button>
+      <div class="tc-pop" id="tc-settings-pop">
+        <h6>Zoom</h6>
+        <button data-zoom="x5" onclick="setChartZoom('x5')">x5</button>
+        <button data-zoom="x2" onclick="setChartZoom('x2')">x2</button>
+        <button data-zoom="1:1" onclick="setChartZoom('1:1')">1:1</button>
+        <button data-zoom="1:2" onclick="setChartZoom('1:2')">1:2</button>
+        <button data-zoom="1:5" onclick="setChartZoom('1:5')">1:5</button>
+        <hr>
+        <h6>Size</h6>
+        <button data-size="small" onclick="setChartSize('small')">Small</button>
+        <button data-size="medium" onclick="setChartSize('medium')">Medium</button>
+        <button data-size="big" onclick="setChartSize('big')">Big</button>
+      </div>
+    </div>
+    <div class="tc-grid tc-medium" id="tc-grid"></div>
+    <div class="tc-count" id="tc-count"></div>
+  </div>
+
+
+
   <!-- ── POSITION SIZER ── -->
   <div id="view-risk" style="display:none">
     <div class="risk-panel">
