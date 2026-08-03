@@ -138,6 +138,52 @@ function JournalPage() {
     };
   }, [navigate]);
 
+  // Bridge: the journal iframe asks us to store / fetch its chart screenshots.
+  useEffect(() => {
+    const reply = (source: MessageEventSource | null, payload: Record<string, unknown>) => {
+      (source as Window | null)?.postMessage({ __tj: 1, ...payload }, "*");
+    };
+
+    const onMessage = async (event: MessageEvent) => {
+      const d = event.data as
+        | { __tj?: number; type?: string; rid?: number; tradeId?: string; dataUrl?: string; path?: string }
+        | null;
+      if (!d || !d.__tj || !d.rid || !d.type) return;
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) return reply(event.source, { rid: d.rid, error: "auth" });
+
+      try {
+        if (d.type === "tj-chart-upload" && d.dataUrl) {
+          const blob = await (await fetch(d.dataUrl)).blob();
+          const path = `${user.id}/${d.tradeId ?? "trade"}-${Date.now()}.jpg`;
+          const { error } = await supabase.storage
+            .from("trade-charts")
+            .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+          if (error) throw error;
+          return reply(event.source, { rid: d.rid, path });
+        }
+        if (d.type === "tj-chart-url" && d.path) {
+          const { data, error } = await supabase.storage
+            .from("trade-charts")
+            .createSignedUrl(d.path, 60 * 60 * 24 * 7);
+          if (error || !data) throw error ?? new Error("no url");
+          return reply(event.source, { rid: d.rid, url: data.signedUrl });
+        }
+        if (d.type === "tj-chart-delete" && d.path) {
+          await supabase.storage.from("trade-charts").remove([d.path]);
+          return reply(event.source, { rid: d.rid, ok: true });
+        }
+      } catch (e) {
+        console.error(e);
+        return reply(event.source, { rid: d.rid, error: "failed" });
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   const signOut = async () => {
     const snap = readLocal();
     const { data } = await supabase.auth.getUser();

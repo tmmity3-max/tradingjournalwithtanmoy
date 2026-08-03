@@ -17,7 +17,6 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
-import { Route as ApiPublicCandlesRouteImport } from './routes/api/public/candles'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -62,11 +61,6 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCandlesRoute = ApiPublicCandlesRouteImport.update({
-  id: '/api/public/candles',
-  path: '/api/public/candles',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -77,7 +71,6 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/api/public/candles': typeof ApiPublicCandlesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -88,7 +81,6 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/api/public/candles': typeof ApiPublicCandlesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -100,7 +92,6 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/api/public/candles': typeof ApiPublicCandlesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -113,7 +104,6 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
-    | '/api/public/candles'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -124,7 +114,6 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
-    | '/api/public/candles'
   id:
     | '__root__'
     | '/'
@@ -135,7 +124,6 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
-    | '/api/public/candles'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -147,7 +135,6 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
-  ApiPublicCandlesRoute: typeof ApiPublicCandlesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,13 +195,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/candles': {
-      id: '/api/public/candles'
-      path: '/api/public/candles'
-      fullPath: '/api/public/candles'
-      preLoaderRoute: typeof ApiPublicCandlesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -228,7 +208,6 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
-  ApiPublicCandlesRoute: ApiPublicCandlesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
