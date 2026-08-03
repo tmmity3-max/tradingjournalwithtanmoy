@@ -598,6 +598,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="tab" id="tab-all" onclick="switchTab('all',this)">All Trades</div>
     <div class="tab" onclick="switchTab('open',this)">Open Positions</div>
     <div class="tab" onclick="switchTab('closed',this)">Closed Positions</div>
+    <div class="tab" onclick="switchTab('charts',this)">📈 Trade Charts</div>
     <div class="tab" onclick="switchTab('skipped',this)">🚫 Skipped Trades</div>
     <div class="tab-group-divider"></div>
     <div class="tab-group-label">📈 Analytics</div>
@@ -699,6 +700,62 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
       </div>
     </div>
   </div>
+
+  <!-- ── TRADE CHARTS VIEW ── -->
+  <style>
+    .tc-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;position:relative}
+    .tc-toolbar .search-box{flex:1;min-width:200px}
+    .tc-set-btn{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:8px;padding:8px 12px;font-size:.82rem;font-weight:600;cursor:pointer;color:inherit}
+    .tc-pop{position:absolute;right:0;top:44px;z-index:60;background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.16);padding:10px 8px;min-width:150px;display:none}
+    .tc-pop h6{margin:4px 8px 6px;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+    .tc-pop button{display:flex;justify-content:space-between;width:100%;background:none;border:0;padding:6px 8px;border-radius:6px;font-size:.82rem;cursor:pointer;color:inherit}
+    .tc-pop button:hover{background:rgba(125,125,125,.14)}
+    .tc-pop button.on::after{content:'✓';font-weight:700;color:#16a34a}
+    .tc-pop hr{border:0;border-top:1px solid var(--border,#e5e7eb);margin:8px 4px}
+    .tc-grid{display:grid;gap:14px}
+    .tc-grid.tc-small{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .tc-grid.tc-medium{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+    .tc-grid.tc-big{grid-template-columns:repeat(auto-fill,minmax(520px,1fr))}
+    .tc-card{background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:10px;overflow:hidden}
+    .tc-canvas-wrap{position:relative;width:100%;height:200px}
+    .tc-grid.tc-small .tc-canvas-wrap{height:150px}
+    .tc-grid.tc-big .tc-canvas-wrap{height:280px}
+    .tc-canvas-wrap canvas{width:100%;height:100%;display:block}
+    .tc-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;opacity:.6}
+    .tc-meta{border-top:1px solid var(--border,#e5e7eb);margin-top:8px;padding-top:8px}
+    .tc-sym{font-size:.85rem}.tc-sym span{font-weight:400;opacity:.65;font-size:.75rem}
+    .tc-sub{font-size:.72rem;opacity:.65;margin-top:2px}
+    .tc-pnl{font-size:.92rem;font-weight:700;margin-top:4px}
+    .tc-pnl span{font-size:.72rem;font-weight:600}
+    .tc-empty{padding:40px;text-align:center;opacity:.6;font-size:.85rem}
+    .tc-count{font-size:.75rem;opacity:.6;margin-top:12px}
+  </style>
+  <div id="view-charts" style="display:none">
+    <div class="tc-toolbar">
+      <input class="search-box" id="tc-search" type="text" placeholder="🔍  Search symbol or ID…" oninput="renderTradeCharts()">
+      <select class="filter-sel" id="tc-status" onchange="renderTradeCharts()">
+        <option value="">All Trades</option><option value="OPEN">Open</option><option value="CLOSED">Closed</option>
+      </select>
+      <button class="tc-set-btn" id="tc-settings-btn" onclick="toggleChartSettings()">⚙ Chart Settings</button>
+      <div class="tc-pop" id="tc-settings-pop">
+        <h6>Zoom</h6>
+        <button data-zoom="x5" onclick="setChartZoom('x5')">x5</button>
+        <button data-zoom="x2" onclick="setChartZoom('x2')">x2</button>
+        <button data-zoom="1:1" onclick="setChartZoom('1:1')">1:1</button>
+        <button data-zoom="1:2" onclick="setChartZoom('1:2')">1:2</button>
+        <button data-zoom="1:5" onclick="setChartZoom('1:5')">1:5</button>
+        <hr>
+        <h6>Size</h6>
+        <button data-size="small" onclick="setChartSize('small')">Small</button>
+        <button data-size="medium" onclick="setChartSize('medium')">Medium</button>
+        <button data-size="big" onclick="setChartSize('big')">Big</button>
+      </div>
+    </div>
+    <div class="tc-grid tc-medium" id="tc-grid"></div>
+    <div class="tc-count" id="tc-count"></div>
+  </div>
+
+
 
   <!-- ── POSITION SIZER ── -->
   <div id="view-risk" style="display:none">
@@ -1619,6 +1676,8 @@ function switchTab(tab, el){
   document.getElementById('view-skipped').style.display  = tab==='skipped'?'block':'none';
   document.getElementById('view-rules').style.display    = tab==='rules'?'block':'none';
   document.getElementById('view-settings').style.display = tab==='settings'?'block':'none';
+  document.getElementById('view-charts').style.display   = tab==='charts'?'block':'none';
+  if(tab==='charts'){ renderTradeCharts(); return; }
   if(tab==='all'||tab==='open'||tab==='closed'){
     document.getElementById('filter-status').value = tab==='open'?'OPEN':tab==='closed'?'CLOSED':'';
     document.getElementById('filter-status').style.display = tab==='all'?'':'none';
@@ -3898,6 +3957,238 @@ renderRulesList();
 refreshComplianceSummary();
 // Start quote engine after DOM ready
 setTimeout(quoteInit, 100);
+
+/* ══════════════════════════════════════════════
+   TRADE CHARTS VIEW  (candlestick per trade)
+══════════════════════════════════════════════ */
+let chartSettings = Object.assign({zoom:'1:1', size:'medium'}, JSON.parse(localStorage.getItem('tj_chart_settings')||'{}'));
+const ZOOM_MULT = {'x5':0.2,'x2':0.5,'1:1':1,'1:2':2,'1:5':5};
+const candleCache = {};
+let tcObserver = null;
+
+function saveChartSettings(){ localStorage.setItem('tj_chart_settings', JSON.stringify(chartSettings)); }
+
+function toggleChartSettings(){
+  const p=document.getElementById('tc-settings-pop');
+  p.style.display = p.style.display==='block' ? 'none' : 'block';
+  syncChartSettingsUI();
+}
+function syncChartSettingsUI(){
+  document.querySelectorAll('#tc-settings-pop [data-zoom]').forEach(el=>el.classList.toggle('on', el.dataset.zoom===chartSettings.zoom));
+  document.querySelectorAll('#tc-settings-pop [data-size]').forEach(el=>el.classList.toggle('on', el.dataset.size===chartSettings.size));
+}
+function setChartZoom(z){ chartSettings.zoom=z; saveChartSettings(); syncChartSettingsUI(); renderTradeCharts(); }
+function setChartSize(s){ chartSettings.size=s; saveChartSettings(); syncChartSettingsUI(); renderTradeCharts(); }
+
+function tcTradeSymbolKey(t){ return (t.symbol||'').toUpperCase()+'|'+(t.exchange||'NSE'); }
+
+async function fetchCandles(symbol, exchange){
+  const key = symbol.toUpperCase()+'|'+(exchange||'NSE');
+  if(candleCache[key]) return candleCache[key];
+  const p = fetch(`/api/public/candles?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange||'NSE')}`)
+    .then(r=>r.json())
+    .then(d=>Array.isArray(d.candles)?d.candles:[])
+    .catch(()=>[]);
+  candleCache[key]=p;
+  return p;
+}
+
+function tcTradeDates(t){
+  const start = new Date(t.date||Date.now()).getTime();
+  const exitDates=(t.exits||[]).map(e=>new Date(e.date).getTime()).filter(x=>!isNaN(x));
+  const end = t.status==='CLOSED' && exitDates.length ? Math.max(...exitDates) : Date.now();
+  return {start, end:Math.max(end,start)};
+}
+
+function renderTradeCharts(){
+  const grid=document.getElementById('tc-grid');
+  if(!grid) return;
+  const q=(document.getElementById('tc-search').value||'').toLowerCase();
+  const st=document.getElementById('tc-status').value;
+  let rows=trades.filter(t=>{
+    if(st && t.status!==st) return false;
+    if(q && !(t.symbol||'').toLowerCase().includes(q) && !String(t.id).includes(q)) return false;
+    return true;
+  }).sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+  grid.className='tc-grid tc-'+chartSettings.size;
+  document.getElementById('tc-count').textContent = rows.length ? `Showing ${rows.length} trade${rows.length>1?'s':''}` : '';
+
+  if(!rows.length){
+    grid.innerHTML='<div class="tc-empty">No trades to chart yet. Add a trade to see its candlestick chart here.</div>';
+    return;
+  }
+
+  grid.innerHTML = rows.map(t=>{
+    const pnl = t.status==='CLOSED' ? (t.realisedPnl||0) : ((t.cmp? (t.cmp-t.avgBuy)*t.remQty*(t.type==='SHORT'?-1:1):0)+(t.realisedPnl||0));
+    const cap = capital();
+    const pct = cap? (pnl/cap*100) : null;
+    const r = t.initialRisk ? pnl/t.initialRisk : null;
+    const {start,end}=tcTradeDates(t);
+    const days=Math.max(0,Math.round((end-start)/86400000));
+    const cls = pnl>0?'pnl-pos':pnl<0?'pnl-neg':'pnl-zero';
+    return `<div class="tc-card" data-tid="${t.id}">
+      <div class="tc-canvas-wrap"><canvas></canvas><div class="tc-load">Loading chart…</div></div>
+      <div class="tc-meta">
+        <div class="tc-sym"><b>${t.symbol}</b> <span>· ${t.exchange||''} · ${t.type}</span></div>
+        <div class="tc-sub">${t.date||''}, ${days} Days, ${t.status==='CLOSED'?'100.00% Closed':'Open'}</div>
+        <div class="tc-pnl ${cls}">${fmt(pnl)} ${pct!==null?`<span>(${pct.toFixed(2)}%)</span>`:''} ${r!==null?`<span>(${r.toFixed(1)}R)</span>`:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(tcObserver) tcObserver.disconnect();
+  tcObserver=new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(!en.isIntersecting) return;
+      tcObserver.unobserve(en.target);
+      const t=trades.find(x=>x.id===Number(en.target.dataset.tid));
+      if(t) drawTradeCard(en.target, t);
+    });
+  },{rootMargin:'200px'});
+  grid.querySelectorAll('.tc-card').forEach(c=>tcObserver.observe(c));
+}
+
+async function drawTradeCard(card, t){
+  const wrap=card.querySelector('.tc-canvas-wrap');
+  const canvas=card.querySelector('canvas');
+  const loader=card.querySelector('.tc-load');
+  const all=await fetchCandles(t.symbol, t.exchange);
+  if(!all.length){ loader.textContent='Price data unavailable for '+t.symbol; return; }
+  loader.style.display='none';
+
+  const {start,end}=tcTradeDates(t);
+  const inTrade=all.filter(c=>c.t>=start-86400000 && c.t<=end+86400000);
+  const dur=Math.max(inTrade.length,5);
+  const pad=Math.max(8, Math.round(dur*(ZOOM_MULT[chartSettings.zoom]||1)));
+  let si=all.findIndex(c=>c.t>=start-86400000);
+  if(si<0) si=Math.max(0,all.length-dur);
+  let ei=all.findIndex(c=>c.t>end+86400000);
+  if(ei<0) ei=all.length-1;
+  const data=all.slice(Math.max(0,si-pad), Math.min(all.length, ei+pad+1));
+  if(!data.length){ loader.style.display='block'; loader.textContent='No candles in trade window'; return; }
+
+  const draw=()=>drawCandles(canvas, data, t);
+  draw();
+  if(!card._tcResize){ card._tcResize=true; window.addEventListener('resize', ()=>requestAnimationFrame(draw)); }
+}
+
+function drawCandles(canvas, data, t){
+  const wrap=canvas.parentElement;
+  const cssW=wrap.clientWidth, cssH=wrap.clientHeight;
+  if(!cssW||!cssH) return;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=cssW*dpr; canvas.height=cssH*dpr;
+  canvas.style.width=cssW+'px'; canvas.style.height=cssH+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  const grid=dark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';
+  const axis=dark?'rgba(255,255,255,.45)':'rgba(0,0,0,.45)';
+  const up='#16a34a', down='#ef4444';
+
+  const padL=6, padR=58, padT=10, axisH=18;
+  const volH=Math.round((cssH-padT-axisH)*0.20);
+  const priceH=cssH-padT-axisH-volH-6;
+  const plotW=cssW-padL-padR;
+
+  const entryPrices=[t.avgBuy, ...(t.buyHistory||[]).map(b=>b.price)].filter(v=>v>0);
+  const exitPrices=(t.exits||[]).map(e=>e.price).filter(v=>v>0);
+  const lows=[...data.map(c=>c.l), ...entryPrices, ...exitPrices, t.sl].filter(v=>v>0);
+  const highs=[...data.map(c=>c.h), ...entryPrices, ...exitPrices, t.sl].filter(v=>v>0);
+  let min=Math.min(...lows), max=Math.max(...highs);
+  const spread=(max-min)||1; min-=spread*0.06; max+=spread*0.06;
+  const maxVol=Math.max(1,...data.map(c=>c.v||0));
+
+  const x=i=>padL+(i+0.5)*(plotW/data.length);
+  const y=p=>padT+priceH-((p-min)/(max-min))*priceH;
+  const bw=Math.max(1.2, Math.min(9, (plotW/data.length)*0.62));
+
+  // grid lines
+  ctx.strokeStyle=grid; ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const gy=padT+(priceH/4)*g;
+    ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(padL+plotW,gy); ctx.stroke();
+  }
+
+  // candles
+  data.forEach((c,i)=>{
+    const col=c.c>=c.o?up:down;
+    ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+    const cx=Math.round(x(i))+0.5;
+    ctx.beginPath(); ctx.moveTo(cx,y(c.h)); ctx.lineTo(cx,y(c.l)); ctx.stroke();
+    const yo=y(c.o), yc=y(c.c);
+    ctx.fillRect(cx-bw/2, Math.min(yo,yc), bw, Math.max(1.2,Math.abs(yc-yo)));
+    // volume
+    const vh=((c.v||0)/maxVol)*volH;
+    ctx.globalAlpha=.55;
+    ctx.fillRect(cx-bw/2, padT+priceH+6+volH-vh, bw, vh);
+    ctx.globalAlpha=1;
+  });
+
+  const tag=(price,text,color)=>{
+    if(!(price>0)) return;
+    const py=y(price);
+    if(py<padT-4||py>padT+priceH+4) return;
+    ctx.font='600 9px system-ui,-apple-system,sans-serif';
+    const w=ctx.measureText(text).width+8;
+    ctx.fillStyle=color;
+    ctx.fillRect(cssW-padR+4, py-7, Math.min(w, padR-8), 13);
+    ctx.fillStyle='#fff';
+    ctx.fillText(text, cssW-padR+8, py+2.5);
+  };
+  const hline=(price,color,dash)=>{
+    if(!(price>0)) return;
+    const py=y(price);
+    if(py<padT||py>padT+priceH) return;
+    ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle=color; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(padL,py); ctx.lineTo(padL+plotW,py); ctx.stroke(); ctx.restore();
+  };
+
+  // SL / entry / exit levels
+  hline(t.sl, '#3b82f6', [4,3]); tag(t.sl,'SL','#3b82f6');
+  hline(t.avgBuy, up, [2,3]); tag(t.avgBuy,'E '+fmtN(t.avgBuy), up);
+  if(exitPrices.length){
+    const avgExit=exitPrices.reduce((a,b)=>a+b,0)/exitPrices.length;
+    hline(avgExit, down, [2,3]); tag(avgExit,'X '+fmtN(avgExit), down);
+  }
+
+  // entry / exit markers on the timeline
+  const nearest=(ms)=>{
+    let bi=0,bd=Infinity;
+    data.forEach((c,i)=>{const d=Math.abs(c.t-ms); if(d<bd){bd=d;bi=i;}});
+    return bd<=5*86400000?bi:-1;
+  };
+  const marker=(ms,price,color,up_)=>{
+    const i=nearest(ms); if(i<0||!(price>0)) return;
+    const mx=x(i), my=y(price);
+    ctx.fillStyle=color; ctx.beginPath();
+    ctx.moveTo(mx, my+(up_?7:-7)); ctx.lineTo(mx-4.5, my+(up_?13:-13)); ctx.lineTo(mx+4.5, my+(up_?13:-13));
+    ctx.closePath(); ctx.fill();
+  };
+  marker(new Date(t.date).getTime(), t.avgBuy, up, true);
+  (t.buyHistory||[]).forEach(b=>marker(new Date(b.date).getTime(), b.price, up, true));
+  (t.exits||[]).forEach(e=>marker(new Date(e.date).getTime(), e.price, down, false));
+
+  // date axis
+  ctx.fillStyle=axis; ctx.font='9px system-ui,-apple-system,sans-serif';
+  const ticks=Math.min(5, data.length);
+  for(let k=0;k<ticks;k++){
+    const i=Math.round(k*(data.length-1)/Math.max(1,ticks-1));
+    const d=new Date(data[i].t);
+    const label=d.toLocaleDateString('en-IN',{month:'short',day:'numeric'});
+    const tx=Math.min(cssW-padR-24, Math.max(padL, x(i)-14));
+    ctx.fillText(label, tx, cssH-5);
+  }
+}
+
+document.addEventListener('click', (e)=>{
+  const pop=document.getElementById('tc-settings-pop');
+  if(!pop||pop.style.display!=='block') return;
+  if(!e.target.closest('#tc-settings-pop') && !e.target.closest('#tc-settings-btn')) pop.style.display='none';
+});
 </script>
 </body>
 </html>
