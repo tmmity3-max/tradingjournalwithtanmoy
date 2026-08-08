@@ -46,7 +46,7 @@ function JournalPage() {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       if (!user) {
-        navigate({ to: "/auth", search: {}, replace: true });
+        navigate({ to: "/auth", search: { next: undefined }, replace: true });
         return;
       }
       if (cancelled) return;
@@ -196,7 +196,7 @@ function JournalPage() {
     }
     Object.keys(snap).forEach((k) => localStorage.removeItem(k));
     await supabase.auth.signOut();
-    navigate({ to: "/auth", search: {}, replace: true });
+    navigate({ to: "/auth", search: { next: undefined }, replace: true });
   };
 
   if (!ready) {
