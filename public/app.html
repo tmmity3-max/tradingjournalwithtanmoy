@@ -4114,14 +4114,22 @@ function renderTradeCharts(){
     const rec = tradeCharts[t.id]||{};
     const hasImg = !!rec.path;
     const remarks = (rec.remarks||'').replace(/"/g,'&quot;');
+    const entryShots=(t.images||[]), exitShots=(t.exitImages||[]);
+    const attached=[...entryShots.map(im=>({...im,kind:'📥 Entry'})),...exitShots.map(im=>({...im,kind:'📤 Exit'}))];
+    const cover = hasImg ? null : (attached[0]||null);
     return `<div class="tc-card" data-tid="${t.id}">
       <div class="tc-shot-wrap">
-        <div class="tc-shot">${hasImg?'<div class="tc-ph">Loading image…</div>':'<div class="tc-ph tc-drop" onclick="tcPickImage('+t.id+')">📷 Click to attach chart screenshot</div>'}</div>
+        <div class="tc-shot">${hasImg?'<div class="tc-ph">Loading image…</div>':(cover?`<img src="${cover.src}" alt="${cover.kind}" onclick="openAllShotsLightbox(${t.id})">`:'<div class="tc-ph tc-drop" onclick="tcPickImage('+t.id+')">📷 Click to attach chart screenshot</div>')}</div>
         <div class="tc-shot-actions">
           <button onclick="tcPickImage(${t.id})">${hasImg?'↻ Replace':'＋ Add'}</button>
           ${hasImg?`<button onclick="tcRemoveImage(${t.id})">🗑 Remove</button>`:''}
         </div>
       </div>
+      ${attached.length?`<div class="tc-lib">
+        <div class="tc-lib-head"><span>🖼 Attached screenshots (${attached.length})</span>
+          <button onclick="openAllShotsLightbox(${t.id})">Open full screen</button></div>
+        <div class="tc-lib-strip">${attached.map((im,i)=>`<div class="tc-thumb" title="${im.kind}" onclick="openAllShotsLightbox(${t.id},${i})"><img src="${im.src}" alt="${im.kind}"><span>${im.kind}</span></div>`).join('')}</div>
+      </div>`:''}
       <div class="tc-meta">
         <div class="tc-sym"><b>${t.symbol}</b> <span>· ${t.exchange||''} · ${t.type}</span></div>
         <div class="tc-sub">${t.date||''}, ${days} Days, ${t.status==='CLOSED'?'100.00% Closed':'Open'}</div>
