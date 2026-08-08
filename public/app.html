@@ -476,7 +476,9 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
 .cmp-panel-title.entry{color:var(--blue)} .cmp-panel-title.exit{color:var(--green-acc)}
 .cmp-img-area{background:var(--surface-2);border-radius:10px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .cmp-img-area img{max-width:100%;max-height:380px;object-fit:contain;border-radius:8px}
-.allshots-inner{max-width:1600px;width:96vw;height:92vh;display:flex;flex-direction:column}
+.allshots-inner{max-width:none;width:100vw;height:100vh;border-radius:0;display:flex;flex-direction:column}
+.cmp-lightbox{padding:0}
+
 .allshots-body{flex:1;min-height:0;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
 .allshots-stage{flex:1;min-height:0;position:relative;background:var(--surface-2);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .allshots-stage img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:8px}
@@ -488,13 +490,13 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
 .allshots-dots{display:flex;gap:6px}
 .allshots-dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);cursor:pointer;opacity:.5}
 .allshots-dot.active{background:var(--blue);opacity:1}
-@media (max-width:900px){.allshots-inner{height:94vh}}
+@media (max-width:900px){.allshots-inner{height:100vh}}
 #cmp-lightbox .cmp-lb-trade-info{flex-shrink:0}
 #cmp-lightbox .cmp-panels{flex:1;min-height:0}
 #cmp-lightbox .cmp-panel{min-height:0}
 #cmp-lightbox .cmp-panel-title{flex-shrink:0}
 #cmp-lightbox .cmp-img-area{flex:1;min-height:0}
-#cmp-lightbox .cmp-img-area img{max-height:100%;height:100%;width:auto;max-width:100%}
+#cmp-lightbox .cmp-img-area img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
 #cmp-lightbox .cmp-nav-row{flex-shrink:0}
 
 /* ══════════════════════════════════════════════
@@ -736,6 +738,13 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     .tc-pnl span{font-size:.72rem;font-weight:600}
     .tc-empty{padding:40px;text-align:center;opacity:.6;font-size:.85rem}
     .tc-count{font-size:.75rem;opacity:.6;margin-top:12px}
+    .tc-lib{margin-top:8px;border-top:1px dashed var(--border,#e5e7eb);padding-top:8px}
+    .tc-lib-head{display:flex;align-items:center;justify-content:space-between;font-size:.72rem;opacity:.75;margin-bottom:6px}
+    .tc-lib-head button{background:none;border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:3px 8px;font-size:.68rem;cursor:pointer;color:inherit}
+    .tc-lib-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+    .tc-thumb{position:relative;flex:0 0 auto;width:104px;height:70px;border-radius:8px;overflow:hidden;border:1px solid var(--border,#e5e7eb);cursor:zoom-in;background:rgba(125,125,125,.08)}
+    .tc-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .tc-thumb span{position:absolute;left:0;bottom:0;right:0;font-size:.6rem;background:rgba(17,24,39,.72);color:#fff;padding:2px 4px;text-align:center}
   </style>
   <div id="view-charts" style="display:none">
     <div class="tc-toolbar">
@@ -2415,13 +2424,13 @@ function closeCmpLightbox(){document.getElementById('cmp-lightbox').classList.re
 let allShotsList=[];
 let allShotsIdx=0;
 
-function openAllShotsLightbox(id){
+function openAllShotsLightbox(id, startIdx){
   const t=trades.find(x=>x.id===id);
   if(!t) return;
   const entry=(t.images||[]).map((img,i)=>({...img,label:`📥 Entry Screenshot #${i+1}`}));
   const exit=(t.exitImages||[]).map((img,i)=>({...img,label:`📤 Exit Screenshot #${i+1}`}));
   allShotsList=[...entry,...exit];
-  allShotsIdx=0;
+  allShotsIdx=Math.min(Math.max(0, startIdx||0), Math.max(0, allShotsList.length-1));
   document.getElementById('allshots-lb-title').textContent = `🖼 All Screenshots — ${t.symbol} (${allShotsList.length})`;
   renderAllShotsCurrent();
   document.getElementById('allshots-lightbox').classList.add('open');
@@ -4112,14 +4121,22 @@ function renderTradeCharts(){
     const rec = tradeCharts[t.id]||{};
     const hasImg = !!rec.path;
     const remarks = (rec.remarks||'').replace(/"/g,'&quot;');
+    const entryShots=(t.images||[]), exitShots=(t.exitImages||[]);
+    const attached=[...entryShots.map(im=>({...im,kind:'📥 Entry'})),...exitShots.map(im=>({...im,kind:'📤 Exit'}))];
+    const cover = hasImg ? null : (attached[0]||null);
     return `<div class="tc-card" data-tid="${t.id}">
       <div class="tc-shot-wrap">
-        <div class="tc-shot">${hasImg?'<div class="tc-ph">Loading image…</div>':'<div class="tc-ph tc-drop" onclick="tcPickImage('+t.id+')">📷 Click to attach chart screenshot</div>'}</div>
+        <div class="tc-shot">${hasImg?'<div class="tc-ph">Loading image…</div>':(cover?`<img src="${cover.src}" alt="${cover.kind}" onclick="openAllShotsLightbox(${t.id})">`:'<div class="tc-ph tc-drop" onclick="tcPickImage('+t.id+')">📷 Click to attach chart screenshot</div>')}</div>
         <div class="tc-shot-actions">
           <button onclick="tcPickImage(${t.id})">${hasImg?'↻ Replace':'＋ Add'}</button>
           ${hasImg?`<button onclick="tcRemoveImage(${t.id})">🗑 Remove</button>`:''}
         </div>
       </div>
+      ${attached.length?`<div class="tc-lib">
+        <div class="tc-lib-head"><span>🖼 Attached screenshots (${attached.length})</span>
+          <button onclick="openAllShotsLightbox(${t.id})">Open full screen</button></div>
+        <div class="tc-lib-strip">${attached.map((im,i)=>`<div class="tc-thumb" title="${im.kind}" onclick="openAllShotsLightbox(${t.id},${i})"><img src="${im.src}" alt="${im.kind}"><span>${im.kind}</span></div>`).join('')}</div>
+      </div>`:''}
       <div class="tc-meta">
         <div class="tc-sym"><b>${t.symbol}</b> <span>· ${t.exchange||''} · ${t.type}</span></div>
         <div class="tc-sub">${t.date||''}, ${days} Days, ${t.status==='CLOSED'?'100.00% Closed':'Open'}</div>
