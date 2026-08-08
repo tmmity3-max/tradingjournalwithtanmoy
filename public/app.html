@@ -745,7 +745,29 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     .tc-thumb{position:relative;flex:0 0 auto;width:104px;height:70px;border-radius:8px;overflow:hidden;border:1px solid var(--border,#e5e7eb);cursor:zoom-in;background:rgba(125,125,125,.08)}
     .tc-thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .tc-thumb span{position:absolute;left:0;bottom:0;right:0;font-size:.6rem;background:rgba(17,24,39,.72);color:#fff;padding:2px 4px;text-align:center}
+    @media (max-width:640px){
+      #view-charts{padding:0 2px}
+      .tc-toolbar{gap:8px;margin-bottom:12px}
+      .tc-toolbar .search-box{flex:1 1 100%;min-width:0;width:100%}
+      .tc-toolbar .filter-sel{flex:1 1 auto;min-width:0}
+      .tc-set-btn{flex:0 0 auto;padding:8px 10px;font-size:.78rem}
+      .tc-pop{right:0;left:auto;top:auto;position:absolute;margin-top:4px;min-width:140px}
+      .tc-grid,.tc-grid.tc-small,.tc-grid.tc-medium,.tc-grid.tc-big{grid-template-columns:1fr;gap:12px}
+      .tc-shot,.tc-grid.tc-small .tc-shot,.tc-grid.tc-big .tc-shot{height:190px}
+      .tc-card{padding:10px;border-radius:10px}
+      .tc-shot-actions{opacity:1}
+      .tc-shot-actions button{padding:6px 10px;font-size:.72rem}
+      .tc-remarks{min-height:60px;font-size:.8rem}
+      .tc-thumb{width:88px;height:60px}
+      .tc-lib-strip{-webkit-overflow-scrolling:touch}
+      .cmp-panels{grid-template-columns:1fr}
+      .cmp-panel{border-right:none;border-bottom:2px solid var(--border);padding:10px}
+      .cmp-lb-header{padding:10px 12px}
+      .cmp-lb-title{font-size:.88rem}
+      #cmp-lightbox .cmp-panels,#allshots-lightbox .cmp-panels{overflow-y:auto}
+    }
   </style>
+
   <div id="view-charts" style="display:none">
     <div class="tc-toolbar">
       <input class="search-box" id="tc-search" type="text" placeholder="🔍  Search symbol or ID…" oninput="renderTradeCharts()">
