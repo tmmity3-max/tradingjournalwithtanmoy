@@ -2417,13 +2417,13 @@ function closeCmpLightbox(){document.getElementById('cmp-lightbox').classList.re
 let allShotsList=[];
 let allShotsIdx=0;
 
-function openAllShotsLightbox(id){
+function openAllShotsLightbox(id, startIdx){
   const t=trades.find(x=>x.id===id);
   if(!t) return;
   const entry=(t.images||[]).map((img,i)=>({...img,label:`📥 Entry Screenshot #${i+1}`}));
   const exit=(t.exitImages||[]).map((img,i)=>({...img,label:`📤 Exit Screenshot #${i+1}`}));
   allShotsList=[...entry,...exit];
-  allShotsIdx=0;
+  allShotsIdx=Math.min(Math.max(0, startIdx||0), Math.max(0, allShotsList.length-1));
   document.getElementById('allshots-lb-title').textContent = `🖼 All Screenshots — ${t.symbol} (${allShotsList.length})`;
   renderAllShotsCurrent();
   document.getElementById('allshots-lightbox').classList.add('open');
