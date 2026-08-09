@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      broker_credentials: {
+        Row: {
+          created_at: string
+          updated_at: string
+          upstox_token: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          updated_at?: string
+          upstox_token?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          updated_at?: string
+          upstox_token?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       journal_state: {
         Row: {
           data: Json
