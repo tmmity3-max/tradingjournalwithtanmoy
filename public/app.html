@@ -1725,6 +1725,8 @@ function switchTab(tab, el){
   document.getElementById('view-skipped').style.display  = tab==='skipped'?'block':'none';
   document.getElementById('view-rules').style.display    = tab==='rules'?'block':'none';
   document.getElementById('view-settings').style.display = tab==='settings'?'block':'none';
+  if(tab==='settings' && typeof loadUpstoxStatus==='function') loadUpstoxStatus();
+
   document.getElementById('view-charts').style.display   = tab==='charts'?'block':'none';
   if(tab==='charts'){ renderTradeCharts(); return; }
   if(tab==='all'||tab==='open'||tab==='closed'){
