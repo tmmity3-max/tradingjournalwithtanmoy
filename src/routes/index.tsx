@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { canonical, pullRemote, pushRemote, readLocal, writeLocal, type Snapshot } from "@/lib/journal-sync";
+import { fetchUpstoxCmp, getUpstoxStatus, saveUpstoxToken } from "@/lib/upstox.functions";
+
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -146,7 +148,16 @@ function JournalPage() {
 
     const onMessage = async (event: MessageEvent) => {
       const d = event.data as
-        | { __tj?: number; type?: string; rid?: number; tradeId?: string; dataUrl?: string; path?: string }
+        | {
+            __tj?: number;
+            type?: string;
+            rid?: number;
+            tradeId?: string;
+            dataUrl?: string;
+            path?: string;
+            token?: string;
+            symbols?: Array<{ symbol: string; exchange: string }>;
+          }
         | null;
       if (!d || !d.__tj || !d.rid || !d.type) return;
       const { data: userData } = await supabase.auth.getUser();
@@ -154,6 +165,19 @@ function JournalPage() {
       if (!user) return reply(event.source, { rid: d.rid, error: "auth" });
 
       try {
+        if (d.type === "tj-upstox-status") {
+          const res = await getUpstoxStatus();
+          return reply(event.source, { rid: d.rid, ...res });
+        }
+        if (d.type === "tj-upstox-save") {
+          const res = await saveUpstoxToken({ data: { token: d.token ?? "" } });
+          return reply(event.source, { rid: d.rid, ...res });
+        }
+        if (d.type === "tj-upstox-cmp") {
+          const res = await fetchUpstoxCmp({ data: { symbols: d.symbols ?? [] } });
+          return reply(event.source, { rid: d.rid, ...res });
+        }
+
         if (d.type === "tj-chart-upload" && d.dataUrl) {
           const blob = await (await fetch(d.dataUrl)).blob();
           const path = `${user.id}/${d.tradeId ?? "trade"}-${Date.now()}.jpg`;

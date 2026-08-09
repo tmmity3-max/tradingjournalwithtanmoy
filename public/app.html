@@ -1045,11 +1045,29 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
       </div>
 
       <div class="table-card">
-        <div class="card-title">⚙️ General</div>
-        <div style="padding:22px;text-align:center;color:var(--text-3);font-size:.85rem">
-          More settings will appear here soon.
+        <div class="card-title">📈 Upstox Live CMP</div>
+        <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:.82rem;color:var(--text-2);line-height:1.55">
+            Paste your own Upstox <b>Analytics access token</b> (Upstox → Apps → My Apps → Analytics).
+            It is stored privately against your account and used only to pull the latest traded price
+            for your <b>OPEN</b> NSE / BSE equity trades. Auto-refreshes once a day after market close.
+          </div>
+          <div id="upstox-status" style="font-size:.8rem;font-weight:700;color:var(--text-3)">Checking…</div>
+          <div class="form-group">
+            <label>Upstox Access Token</label>
+            <input type="password" id="upstox-token" placeholder="eyJ0eXAiOiJKV1Qi..." autocomplete="off">
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-save" onclick="saveUpstoxKey()">💾 Save Token</button>
+            <button class="btn-hdr" onclick="clearUpstoxKey()">🗑 Remove</button>
+            <button class="btn-hdr" onclick="refreshCmpNow(true)">🔄 Refresh CMP Now</button>
+          </div>
+          <div style="font-size:.75rem;color:var(--text-3)">
+            NFO / MCX / CRYPTO positions are skipped — only cash equity symbols are resolved.
+          </div>
         </div>
       </div>
+
 
     </div>
   </div>
@@ -1707,6 +1725,8 @@ function switchTab(tab, el){
   document.getElementById('view-skipped').style.display  = tab==='skipped'?'block':'none';
   document.getElementById('view-rules').style.display    = tab==='rules'?'block':'none';
   document.getElementById('view-settings').style.display = tab==='settings'?'block':'none';
+  if(tab==='settings' && typeof loadUpstoxStatus==='function') loadUpstoxStatus();
+
   document.getElementById('view-charts').style.display   = tab==='charts'?'block':'none';
   if(tab==='charts'){ renderTradeCharts(); return; }
   if(tab==='all'||tab==='open'||tab==='closed'){
@@ -4179,6 +4199,82 @@ document.addEventListener('click', (e)=>{
   if(!pop||pop.style.display!=='block') return;
   if(!e.target.closest('#tc-settings-pop') && !e.target.closest('#tc-settings-btn')) pop.style.display='none';
 });
+
+/* ══════════════════════════════════════════════
+   UPSTOX — PER-USER TOKEN + DAILY EOD CMP REFRESH
+══════════════════════════════════════════════ */
+function upstoxStatusEl(){ return document.getElementById('upstox-status'); }
+
+async function loadUpstoxStatus(){
+  const el = upstoxStatusEl();
+  if(!el) return;
+  el.textContent='Checking…'; el.style.color='var(--text-3)';
+  const r = await tcCall('tj-upstox-status');
+  if(r && r.connected){
+    el.textContent = '● Connected  ('+(r.hint||'token saved')+')';
+    el.style.color = 'var(--green-acc)';
+  } else {
+    el.textContent = '○ Not connected — no token saved yet';
+    el.style.color = 'var(--text-3)';
+  }
+}
+
+async function saveUpstoxKey(){
+  const input=document.getElementById('upstox-token');
+  const token=(input.value||'').trim();
+  if(!token){ toast('Paste your Upstox token first', true); return; }
+  const r = await tcCall('tj-upstox-save', {token});
+  if(r && r.ok){ input.value=''; toast('Upstox token saved'); loadUpstoxStatus(); refreshCmpNow(true); }
+  else toast('Could not save token', true);
+}
+
+async function clearUpstoxKey(){
+  const r = await tcCall('tj-upstox-save', {token:''});
+  if(r && r.ok){ toast('Upstox token removed'); loadUpstoxStatus(); }
+  else toast('Could not remove token', true);
+}
+
+async function refreshCmpNow(manual){
+  const open = trades.filter(t=>t.status==='OPEN' && t.symbol);
+  if(!open.length){ if(manual) toast('No open trades to price', true); return; }
+  const symbols = open.map(t=>({symbol:t.symbol, exchange:t.exchange||'NSE'}));
+  if(manual) toast('Fetching live prices…');
+  const r = await tcCall('tj-upstox-cmp', {symbols});
+  if(!r || r.error){
+    if(manual){
+      const msg = r && r.error==='no-token' ? 'Add your Upstox token in Settings first'
+        : r && r.error==='bad-token' ? 'Upstox rejected the token — it may have expired'
+        : 'Could not fetch prices';
+      toast(msg, true);
+    }
+    return;
+  }
+  const prices = r.prices||{};
+  let n=0;
+  open.forEach(t=>{
+    const p = prices[(t.exchange||'NSE')+':'+String(t.symbol).toUpperCase()];
+    if(typeof p==='number' && p>0 && t.cmp!==p){ t.cmp=p; n++; }
+  });
+  if(n){ save(); refreshSummary(); renderTable(); }
+  localStorage.setItem('tj_cmp_last', new Date().toISOString());
+  if(manual) toast(n ? ('CMP updated for '+n+' trade'+(n>1?'s':'')) : 'Prices already up to date');
+}
+
+/* Auto refresh once per day, after Indian market close (15:45 IST) */
+function istNow(){ return new Date(Date.now() + (new Date().getTimezoneOffset()*60000) + (5.5*3600000)); }
+function maybeAutoRefreshCmp(){
+  const ist = istNow();
+  const day = ist.getDay();
+  if(day===0 || day===6) return;
+  if(ist.getHours()*60 + ist.getMinutes() < 15*60+45) return;
+  const key = ist.toISOString().slice(0,10);
+  if(localStorage.getItem('tj_cmp_last_day')===key) return;
+  localStorage.setItem('tj_cmp_last_day', key);
+  refreshCmpNow(false);
+}
+
+setTimeout(()=>{ loadUpstoxStatus(); maybeAutoRefreshCmp(); }, 1500);
+setInterval(maybeAutoRefreshCmp, 10*60*1000);
 </script>
 </body>
 </html>
