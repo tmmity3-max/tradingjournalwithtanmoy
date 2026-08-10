@@ -165,6 +165,14 @@ function JournalPage() {
       if (!user) return reply(event.source, { rid: d.rid, error: "auth" });
 
       try {
+        if (d.type === "tj-account") {
+          return reply(event.source, { rid: d.rid, email: user.email ?? "" });
+        }
+        if (d.type === "tj-signout") {
+          reply(event.source, { rid: d.rid, ok: true });
+          await signOut();
+          return;
+        }
         if (d.type === "tj-upstox-status") {
           const res = await getUpstoxStatus();
           return reply(event.source, { rid: d.rid, ...res });
@@ -208,6 +216,13 @@ function JournalPage() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { __tj: 1, type: "tj-sync-status", status },
+      "*",
+    );
+  }, [status]);
+
   const signOut = async () => {
     const snap = readLocal();
     const { data } = await supabase.auth.getUser();
@@ -241,18 +256,9 @@ function JournalPage() {
         className="h-full w-full border-0"
       />
 
-      <div className="pointer-events-auto fixed bottom-3 left-3 z-50 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs shadow-lg backdrop-blur">
-        <span className="text-muted-foreground">
-          {status === "saving" ? "Saving…" : "Synced"}
-        </span>
-        {email ? <span className="hidden text-foreground sm:inline">· {email}</span> : null}
-        <button
-          onClick={signOut}
-          className="rounded-full bg-primary px-2.5 py-1 font-medium text-primary-foreground"
-        >
-          Sign out
-        </button>
-      </div>
+      <span className="sr-only">
+        {status === "saving" ? "Saving" : "Synced"} {email ?? ""}
+      </span>
     </main>
 
   );
