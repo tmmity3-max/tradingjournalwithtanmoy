@@ -241,7 +241,7 @@ function JournalPage() {
         className="h-full w-full border-0"
       />
 
-      <div className="pointer-events-auto fixed bottom-3 right-3 z-50 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs shadow-lg backdrop-blur">
+      <div className="pointer-events-auto fixed bottom-3 left-3 z-50 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs shadow-lg backdrop-blur">
         <span className="text-muted-foreground">
           {status === "saving" ? "Saving…" : "Synced"}
         </span>
