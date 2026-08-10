@@ -1032,19 +1032,19 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="settings-layout">
 
       <div class="table-card">
-        <div class="card-title">👤 Account</div>
-        <div style="padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div>
-            <div style="font-size:.8rem;color:var(--text-3)">Signed in as</div>
-            <div id="acct-email" style="font-size:.9rem;font-weight:700;color:var(--text)">…</div>
-            <div id="acct-sync" style="font-size:.75rem;color:var(--text-3);margin-top:2px">Synced</div>
-          </div>
-          <button class="btn-hdr" onclick="tjSignOut()">🚪 Sign out</button>
-        </div>
-      </div>
+        <div class="card-title">⚙️ Preferences</div>
 
-      <div class="table-card">
-        <div class="card-title">🌓 Appearance</div>
+        <div class="settings-row">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <div id="acct-avatar" class="settings-avatar">–</div>
+            <div class="settings-row-text" style="min-width:0">
+              <div class="settings-row-title" id="acct-email" style="overflow:hidden;text-overflow:ellipsis">…</div>
+              <div class="settings-row-desc" id="acct-sync">Synced</div>
+            </div>
+          </div>
+          <button class="btn-hdr" onclick="tjSignOut()">Sign out</button>
+        </div>
+
         <div class="settings-row">
           <div class="settings-row-text">
             <div class="settings-row-title">Dark Mode</div>
@@ -1055,31 +1055,17 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
             <span class="settings-switch-slider"></span>
           </label>
         </div>
-      </div>
 
-      <div class="table-card">
-        <div class="card-title">📈 Upstox Live CMP</div>
-        <div style="padding:18px;display:flex;flex-direction:column;gap:12px">
-          <div style="font-size:.82rem;color:var(--text-2);line-height:1.55">
-            Paste your own Upstox <b>Analytics access token</b> (Upstox → Apps → My Apps → Analytics).
-            It is stored privately against your account and used only to pull the latest traded price
-            for your <b>OPEN</b> NSE / BSE equity trades. Auto-refreshes once a day after market close.
+        <div class="settings-row settings-row-link" role="button" tabindex="0"
+             onclick="openUpstoxSettings()" onkeypress="if(event.key==='Enter')openUpstoxSettings()">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Upstox Live CMP</div>
+            <div class="settings-row-desc" id="upstox-status-line">Checking…</div>
           </div>
-          <div id="upstox-status" style="font-size:.8rem;font-weight:700;color:var(--text-3)">Checking…</div>
-          <div class="form-group">
-            <label>Upstox Access Token</label>
-            <input type="password" id="upstox-token" placeholder="eyJ0eXAiOiJKV1Qi..." autocomplete="off">
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn-save" onclick="saveUpstoxKey()">💾 Save Token</button>
-            <button class="btn-hdr" onclick="clearUpstoxKey()">🗑 Remove</button>
-            <button class="btn-hdr" onclick="refreshCmpNow(true)">🔄 Refresh CMP Now</button>
-          </div>
-          <div style="font-size:.75rem;color:var(--text-3)">
-            NFO / MCX / CRYPTO positions are skipped — only cash equity symbols are resolved.
-          </div>
+          <span class="settings-chevron">›</span>
         </div>
       </div>
+
 
 
     </div>
