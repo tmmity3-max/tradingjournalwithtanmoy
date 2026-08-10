@@ -249,18 +249,9 @@ function JournalPage() {
         className="h-full w-full border-0"
       />
 
-      <div className="pointer-events-auto fixed bottom-3 left-3 z-50 flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs shadow-lg backdrop-blur">
-        <span className="text-muted-foreground">
-          {status === "saving" ? "Saving…" : "Synced"}
-        </span>
-        {email ? <span className="hidden text-foreground sm:inline">· {email}</span> : null}
-        <button
-          onClick={signOut}
-          className="rounded-full bg-primary px-2.5 py-1 font-medium text-primary-foreground"
-        >
-          Sign out
-        </button>
-      </div>
+      <span className="sr-only">
+        {status === "saving" ? "Saving" : "Synced"} {email ?? ""}
+      </span>
     </main>
 
   );
