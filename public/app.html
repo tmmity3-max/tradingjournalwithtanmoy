@@ -4318,8 +4318,11 @@ window.addEventListener('message', function(e){
 
 async function loadAccount(){
   const r = await tcCall('tj-account');
+  const email = (r && r.email) ? r.email : 'Unknown';
   const el = document.getElementById('acct-email');
-  if(el) el.textContent = (r && r.email) ? r.email : 'Unknown';
+  if(el) el.textContent = email;
+  const av = document.getElementById('acct-avatar');
+  if(av) av.textContent = (email[0]||'?');
 }
 async function tjSignOut(){
   await tcCall('tj-signout');
