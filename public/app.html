@@ -1031,6 +1031,18 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="settings-layout">
 
       <div class="table-card">
+        <div class="card-title">👤 Account</div>
+        <div style="padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:.8rem;color:var(--text-3)">Signed in as</div>
+            <div id="acct-email" style="font-size:.9rem;font-weight:700;color:var(--text)">…</div>
+            <div id="acct-sync" style="font-size:.75rem;color:var(--text-3);margin-top:2px">Synced</div>
+          </div>
+          <button class="btn-hdr" onclick="tjSignOut()">🚪 Sign out</button>
+        </div>
+      </div>
+
+      <div class="table-card">
         <div class="card-title">🌓 Appearance</div>
         <div class="settings-row">
           <div class="settings-row-text">
