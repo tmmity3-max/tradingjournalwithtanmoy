@@ -4238,19 +4238,21 @@ document.addEventListener('click', (e)=>{
 ══════════════════════════════════════════════ */
 function upstoxStatusEl(){ return document.getElementById('upstox-status'); }
 
+function openUpstoxSettings(){ openModal('upstox-modal'); loadUpstoxStatus(); }
+
 async function loadUpstoxStatus(){
   const el = upstoxStatusEl();
-  if(!el) return;
-  el.textContent='Checking…'; el.style.color='var(--text-3)';
+  const line = document.getElementById('upstox-status-line');
+  if(el){ el.textContent='Checking…'; el.style.color='var(--text-3)'; }
   const r = await tcCall('tj-upstox-status');
-  if(r && r.connected){
-    el.textContent = '● Connected  ('+(r.hint||'token saved')+')';
-    el.style.color = 'var(--green-acc)';
-  } else {
-    el.textContent = '○ Not connected — no token saved yet';
-    el.style.color = 'var(--text-3)';
+  const connected = !!(r && r.connected);
+  if(el){
+    el.textContent = connected ? ('● Connected  ('+(r.hint||'token saved')+')') : '○ Not connected — no token saved yet';
+    el.style.color = connected ? 'var(--green-acc)' : 'var(--text-3)';
   }
+  if(line) line.textContent = connected ? 'Connected — live prices for open trades' : 'Not connected — add your access token';
 }
+
 
 async function saveUpstoxKey(){
   const input=document.getElementById('upstox-token');
