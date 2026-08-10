@@ -4286,7 +4286,16 @@ function maybeAutoRefreshCmp(){
   refreshCmpNow(false);
 }
 
-setTimeout(()=>{ loadUpstoxStatus(); maybeAutoRefreshCmp(); }, 1500);
+async function loadAccount(){
+  const r = await tcCall('tj-account');
+  const el = document.getElementById('acct-email');
+  if(el) el.textContent = (r && r.email) ? r.email : 'Unknown';
+}
+async function tjSignOut(){
+  await tcCall('tj-signout');
+}
+
+setTimeout(()=>{ loadUpstoxStatus(); loadAccount(); maybeAutoRefreshCmp(); }, 1500);
 setInterval(maybeAutoRefreshCmp, 10*60*1000);
 </script>
 </body>
