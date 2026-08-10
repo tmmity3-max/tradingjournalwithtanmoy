@@ -216,6 +216,13 @@ function JournalPage() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { __tj: 1, type: "tj-sync-status", status },
+      "*",
+    );
+  }, [status]);
+
   const signOut = async () => {
     const snap = readLocal();
     const { data } = await supabase.auth.getUser();

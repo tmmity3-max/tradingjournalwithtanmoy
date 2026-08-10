@@ -4286,6 +4286,14 @@ function maybeAutoRefreshCmp(){
   refreshCmpNow(false);
 }
 
+window.addEventListener('message', function(e){
+  const d = e.data;
+  if(d && d.__tj && d.type==='tj-sync-status'){
+    const el=document.getElementById('acct-sync');
+    if(el) el.textContent = d.status==='saving' ? 'Saving…' : 'Synced';
+  }
+});
+
 async function loadAccount(){
   const r = await tcCall('tj-account');
   const el = document.getElementById('acct-email');
