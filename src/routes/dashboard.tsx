@@ -9,23 +9,23 @@ export const Route = createFileRoute("/dashboard")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Trading Journal Pro — Cloud Synced Trade Log" },
+      { title: "Dashboard — Trading Journal Pro" },
       {
         name: "description",
         content:
           "Track trades, rules and P&L in Trading Journal Pro. Sign in once and your journal syncs across every device.",
       },
-      { property: "og:title", content: "Trading Journal Pro — Cloud Synced Trade Log" },
+      { property: "og:title", content: "Dashboard — Trading Journal Pro" },
       {
         property: "og:description",
         content:
           "Track trades, rules and P&L in Trading Journal Pro. Sign in once and your journal syncs across every device.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://tradingjournalwithtanmoy.lovable.app/" },
+      { property: "og:url", content: "https://tradingjournalwithtanmoy.lovable.app/dashboard" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://tradingjournalwithtanmoy.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://tradingjournalwithtanmoy.lovable.app/dashboard" }],
 
   }),
   component: JournalPage,
@@ -48,7 +48,7 @@ function JournalPage() {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       if (!user) {
-        navigate({ to: "/auth", search: { next: undefined }, replace: true });
+        navigate({ to: "/auth", search: { next: "/dashboard" }, replace: true });
         return;
       }
       if (cancelled) return;
@@ -235,7 +235,7 @@ function JournalPage() {
     }
     Object.keys(snap).forEach((k) => localStorage.removeItem(k));
     await supabase.auth.signOut();
-    navigate({ to: "/auth", search: { next: undefined }, replace: true });
+    navigate({ to: "/auth", search: { next: "/dashboard" }, replace: true });
   };
 
   if (!ready) {
