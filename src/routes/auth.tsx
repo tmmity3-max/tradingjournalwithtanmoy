@@ -43,8 +43,9 @@ function AuthPage() {
 
   const goNext = () => {
     if (next) window.location.replace(next);
-    else navigate({ to: "/", replace: true });
+    else navigate({ to: "/dashboard", replace: true });
   };
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
