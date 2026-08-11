@@ -1,6 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LoginModal } from "@/components/LoginModal";
+
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -30,6 +32,7 @@ export const Route = createFileRoute("/")({
 function LandingPage() {
   const navigate = useNavigate();
   const [signedIn, setSignedIn] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -41,85 +44,55 @@ function LandingPage() {
   }, [navigate]);
 
   return (
-    <main className="min-h-screen bg-[#0b1220] text-white">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-blue-600 text-sm font-bold">
+    <main className="min-h-screen bg-gradient-to-r from-[#1b3fa0] via-[#2f6fd0] to-[#7cc0f5] text-white">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-8 py-10">
+        <div className="flex items-center justify-between">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-700 text-sm font-bold shadow-lg">
             ↗
           </span>
-          <span className="font-semibold tracking-tight">Trading Journal Pro</span>
-        </div>
-        <Link
-          to="/auth"
-          search={{ next: "/dashboard" }}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold transition-colors hover:bg-blue-500"
-        >
-          {signedIn ? "Open dashboard" : "Log in"}
-        </Link>
-      </header>
-
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-24 pt-10 md:grid-cols-2">
-        <div>
-          <h1 className="text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
-            Trading Journal Pro
-            <span className="block text-lg font-semibold text-blue-300 md:text-xl">
-              – NSE, BSE &amp; MCX –
-            </span>
-          </h1>
-          <p className="mt-5 max-w-md text-lg font-semibold text-slate-100">
-            Log, analyse and improve your trades on Indian markets.
-          </p>
-          <p className="mt-2 max-w-md text-sm text-slate-400">
-            Position sizer, dashboards, Zerodha-style charges, chart screenshots and cloud sync on
-            every device.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              to="/auth"
-              search={{ next: "/dashboard" }}
-              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold transition-colors hover:bg-blue-500"
-            >
-              Log in to your journal
-            </Link>
-            <a
-              href="#features"
-              className="rounded-xl border border-white/15 px-6 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/5"
-            >
-              See what's inside
-            </a>
-          </div>
+          <button
+            onClick={() => (signedIn ? navigate({ to: "/dashboard" }) : setOpen(true))}
+            className="rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-semibold shadow-lg transition-colors hover:bg-blue-600"
+          >
+            {signedIn ? "Open dashboard" : "Log in"}
+          </button>
         </div>
 
-        <div className="relative h-[320px] rounded-3xl bg-gradient-to-br from-blue-700 via-blue-500 to-sky-300 p-6 shadow-2xl">
-          <div className="absolute right-6 top-8 rounded-xl bg-blue-700 px-4 py-3 text-xs font-semibold shadow-lg">
-            📈 Equity Curve
+        <section className="grid flex-1 items-center gap-10 py-10 md:grid-cols-2">
+          <div>
+            <h1 className="text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
+              Trading Journal Pro
+              <span className="ml-2 align-middle text-base font-semibold text-blue-100 md:text-lg">
+                – NSE, BSE &amp; MCX –
+              </span>
+            </h1>
+            <p className="mt-6 max-w-md text-lg font-bold">
+              Log, analyse and improve your trades on Indian markets.
+            </p>
+            <p className="mt-3 max-w-md text-sm text-blue-100">
+              Position sizer, dashboards, Zerodha-style charges.
+            </p>
           </div>
-          <div className="absolute right-16 top-28 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-slate-800 shadow-lg">
-            ₹ Realised P&amp;L
-          </div>
-          <div className="absolute right-4 top-44 rounded-xl bg-white px-4 py-3 text-xs font-semibold text-slate-800 shadow-lg">
-            🥧 Win / Loss
-          </div>
-          <div className="absolute bottom-10 right-8 rounded-xl bg-slate-900 px-4 py-3 text-xs font-semibold shadow-lg">
-            ☰ Capital Ledger
-          </div>
-        </div>
-      </section>
 
-      <section id="features" className="border-t border-white/10 bg-[#0e1729] py-16">
-        <div className="mx-auto grid max-w-6xl gap-6 px-6 md:grid-cols-3">
-          {[
-            ["Position sizer", "Risk-based quantity with an open-risk budget you control."],
-            ["Trade charts", "Attach entry and exit screenshots with remarks per trade."],
-            ["Cloud sync", "Sign in once, your journal follows you to every device."],
-          ].map(([title, body]) => (
-            <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-6">
-              <h2 className="text-base font-semibold">{title}</h2>
-              <p className="mt-2 text-sm text-slate-400">{body}</p>
+          <div className="relative h-[300px]">
+            <div className="absolute left-10 top-2 flex items-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold shadow-xl">
+              📈 Equity Curve
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="absolute left-0 top-24 flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-xl">
+              ₹ Realised P&amp;L
+            </div>
+            <div className="absolute left-24 top-40 flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-xl">
+              🥧 Win / Loss
+            </div>
+            <div className="absolute left-6 top-60 flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold shadow-xl">
+              ☰ Capital Ledger
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {open ? <LoginModal onClose={() => setOpen(false)} /> : null}
     </main>
   );
 }
+
