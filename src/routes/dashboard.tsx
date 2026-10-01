@@ -22,10 +22,8 @@ export const Route = createFileRoute("/dashboard")({
           "Track trades, rules and P&L in Trading Journal Pro. Sign in once and your journal syncs across every device.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://tradingjournalwithtanmoy.lovable.app/dashboard" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://tradingjournalwithtanmoy.lovable.app/dashboard" }],
 
   }),
   component: JournalPage,
