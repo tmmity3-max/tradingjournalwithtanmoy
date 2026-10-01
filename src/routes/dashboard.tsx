@@ -131,14 +131,16 @@ function JournalPage() {
           lastSnap.current = incoming;
           return;
         }
-        // If only the extension's watchlist changed, refresh just that tab instead of
-        // reloading the whole journal (which would interrupt whatever is being typed).
+        // If only the extension's watchlist (or its settings) changed, refresh just
+        // that tab instead of reloading the whole journal (which would interrupt
+        // whatever is being typed).
         const before = lastSnap.current ?? {};
         const changedKeys = new Set<string>();
         for (const k of new Set([...Object.keys(before), ...Object.keys(incoming)])) {
           if (before[k] !== incoming[k]) changedKeys.add(k);
         }
-        const onlyWatchlist = changedKeys.size > 0 && [...changedKeys].every((k) => k === "tj_watchlists");
+        const WATCHLIST_KEYS = new Set(["tj_watchlists", "tj_wl_settings"]);
+        const onlyWatchlist = changedKeys.size > 0 && [...changedKeys].every((k) => WATCHLIST_KEYS.has(k));
         lastJson.current = json;
         lastSnap.current = incoming;
         writeLocal(incoming);
