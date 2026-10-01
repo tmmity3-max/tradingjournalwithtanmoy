@@ -87,6 +87,18 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
 .sidebar .tab{border-radius:8px;border-bottom:none;border-left:3px solid transparent;
   padding:10px 12px;white-space:normal}
 .sidebar .tab.active{background:var(--light-blue);border-left-color:var(--blue);border-bottom-color:transparent}
+/* ===== JOURNAL ⇄ WATCHLIST MODE TOGGLE ===== */
+.mode-toggle{display:flex;gap:4px;padding:5px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:11px;margin:0 10px 10px;flex-shrink:0}
+.mode-toggle button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:8px 4px;border:none;border-radius:8px;background:transparent;color:var(--text-2);
+  font-family:var(--font);font-size:.73rem;font-weight:700;cursor:pointer;transition:all .18s;
+  white-space:nowrap;overflow:hidden}
+.mode-toggle button:hover{color:var(--text)}
+.mode-toggle button.active{background:var(--header-bg);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.mode-toggle .mt-ico{font-size:.88rem;line-height:1;flex-shrink:0}
+.tabs-group{display:contents}
+.tabs-group[hidden]{display:none}
 .main-content{flex:1;min-width:0;display:flex;flex-direction:column}
 @media(max-width:900px){
   .app-shell{flex-direction:column}
@@ -95,6 +107,7 @@ body{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--t
   .sidebar .tab{border-left:none;border-bottom:3px solid transparent;border-radius:0}
   .sidebar .tab.active{border-left-color:transparent;border-bottom-color:var(--blue)}
   .sidebar-brand{border-bottom:none}
+  .mode-toggle{margin:8px 28px 0}
 }
 
 /* ACTIONS DROPDOWN */
@@ -598,24 +611,34 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="sb-icon">📈</div>
     <div><h1>Trading Journal</h1><p>NSE · BSE · MCX</p></div>
   </div>
+  <div class="mode-toggle" role="tablist" aria-label="Switch between Journal and Watchlist">
+    <button type="button" id="mode-btn-journal" role="tab" aria-selected="true" onclick="setMode('journal')"><span class="mt-ico">📊</span>Journal</button>
+    <button type="button" id="mode-btn-watchlist" role="tab" aria-selected="false" onclick="setMode('watchlist')"><span class="mt-ico">👁</span>Watchlist</button>
+  </div>
   <div class="tabs">
+   <div class="tabs-group" id="tabs-journal">
     <div class="tab-group-label">📊 Journal</div>
-    <div class="tab active" onclick="switchTab('dashboard',this)">📊 Dashboard</div>
-    <div class="tab" id="tab-all" onclick="switchTab('all',this)">All Trades</div>
-    <div class="tab" onclick="switchTab('open',this)">Open Positions</div>
-    <div class="tab" onclick="switchTab('closed',this)">Closed Positions</div>
-    <div class="tab" onclick="switchTab('charts',this)">📈 Trade Charts</div>
-    <div class="tab" onclick="switchTab('skipped',this)">🚫 Skipped Trades</div>
+    <div class="tab active" data-tab="dashboard" onclick="switchTab('dashboard',this)">📊 Dashboard</div>
+    <div class="tab" id="tab-all" data-tab="all" onclick="switchTab('all',this)">All Trades</div>
+    <div class="tab" data-tab="open" onclick="switchTab('open',this)">Open Positions</div>
+    <div class="tab" data-tab="closed" onclick="switchTab('closed',this)">Closed Positions</div>
+    <div class="tab" data-tab="charts" onclick="switchTab('charts',this)">📈 Trade Charts</div>
+    <div class="tab" data-tab="skipped" onclick="switchTab('skipped',this)">🚫 Skipped Trades</div>
     <div class="tab-group-divider"></div>
     <div class="tab-group-label">📈 Analytics</div>
-    <div class="tab" onclick="switchTab('monthly',this)">📅 Monthly Analysis</div>
+    <div class="tab" data-tab="monthly" onclick="switchTab('monthly',this)">📅 Monthly Analysis</div>
     <div class="tab-group-divider"></div>
     <div class="tab-group-label">🛠 Tools</div>
-    <div class="tab" onclick="switchTab('risk',this)">Position Sizer</div>
-    <div class="tab" onclick="switchTab('ledger',this)">💰 Capital Ledger</div>
-    <div class="tab" onclick="switchTab('watchlist',this)">👁 Watchlist</div>
-    <div class="tab" onclick="switchTab('rules',this)">📋 My Rules</div>
-    <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
+    <div class="tab" data-tab="risk" onclick="switchTab('risk',this)">Position Sizer</div>
+    <div class="tab" data-tab="ledger" onclick="switchTab('ledger',this)">💰 Capital Ledger</div>
+    <div class="tab" data-tab="rules" onclick="switchTab('rules',this)">📋 My Rules</div>
+    <div class="tab" data-tab="settings" onclick="switchTab('settings',this)">⚙️ Settings</div>
+   </div>
+   <div class="tabs-group" id="tabs-watchlist" hidden>
+    <div class="tab-group-label">👁 Watchlist</div>
+    <div class="tab" id="tab-watchlist" data-tab="watchlist" onclick="switchTab('watchlist',this)">📋 My Watchlists</div>
+    <div class="tab" data-tab="wlsettings" onclick="switchTab('wlsettings',this)">⚙️ Watchlist Settings</div>
+   </div>
   </div>
 </div>
 
@@ -1026,6 +1049,88 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
           </table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="view-wlsettings" style="display:none">
+    <div class="settings-layout">
+
+      <div class="table-card">
+        <div class="card-title">📋 Watchlist Defaults</div>
+
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Open this watchlist by default</div>
+            <div class="settings-row-desc">Which list is selected when you switch to the Watchlist tab</div>
+          </div>
+          <select id="wls-default-list" class="filter-sel" onchange="wlSetSetting('defaultList',this.value)"></select>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Default exchange</div>
+            <div class="settings-row-desc">Used when adding a ticker with no <b>EXCHANGE:</b> prefix</div>
+          </div>
+          <select id="wls-default-exchange" class="filter-sel" onchange="wlSetSetting('defaultExchange',this.value)">
+            <option value="NSE">NSE</option>
+            <option value="BSE">BSE</option>
+          </select>
+        </div>
+
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Sort stocks</div>
+            <div class="settings-row-desc">Row order inside each watchlist</div>
+          </div>
+          <select id="wls-sort" class="filter-sel" onchange="wlSetSetting('sort',this.value)">
+            <option value="manual">As added</option>
+            <option value="az">A → Z</option>
+            <option value="za">Z → A</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="card-title">🔗 Row Links</div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Show TradingView link</div>
+            <div class="settings-row-desc">Open a chart on TradingView straight from a watchlist row</div>
+          </div>
+          <label class="settings-switch">
+            <input type="checkbox" id="wls-tv" onchange="wlSetSetting('showTradingView',this.checked)">
+            <span class="settings-switch-slider"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Show Screener link</div>
+            <div class="settings-row-desc">Open the company page on Screener.in (NSE / BSE only)</div>
+          </div>
+          <label class="settings-switch">
+            <input type="checkbox" id="wls-screener" onchange="wlSetSetting('showScreener',this.checked)">
+            <span class="settings-switch-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="card-title">🧹 Data</div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Stored watchlists</div>
+            <div class="settings-row-desc" id="wls-stats">—</div>
+          </div>
+          <button class="btn-hdr" onclick="wlClearAll()">Delete all</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Sync</div>
+            <div class="settings-row-desc">These settings sync to every device along with your watchlists.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1797,6 +1902,12 @@ function updateTagFilter(){
 
 /* ===== WATCHLIST (TM Watchlist extension data) — stored in tj_watchlists, synced like the rest of the journal ===== */
 const WL_KEY='tj_watchlists';
+/* Watchlist-only preferences. The tj_ prefix means these sync to every device like the rest of the journal. */
+const WL_SET_KEY='tj_wl_settings';
+const WL_SET_DEFAULT={defaultList:'',defaultExchange:'NSE',sort:'manual',showTradingView:true,showScreener:true};
+function wlSettings(){ try{ return Object.assign({},WL_SET_DEFAULT,JSON.parse(localStorage.getItem(WL_SET_KEY)||'{}')); }catch(e){ return Object.assign({},WL_SET_DEFAULT); } }
+function wlSaveSettings(s){ localStorage.setItem(WL_SET_KEY,JSON.stringify(s)); }
+function wlSetSetting(k,v){ const s=wlSettings(); s[k]=v; wlSaveSettings(s); renderWatchlistTab(); renderWlSettings(); }
 const WL_COLORS={green:'🟢',red:'🔴',yellow:'🟡',none:'⚪'};
 function wlLoad(){ try{ const d=JSON.parse(localStorage.getItem(WL_KEY)||'{}'); return d&&Array.isArray(d.lists)?d:{lists:[]}; }catch(e){ return {lists:[]}; } }
 function wlSave(d){ localStorage.setItem(WL_KEY,JSON.stringify(d)); }
@@ -1807,7 +1918,7 @@ function wlParseCsv(text){
   rows.forEach((r,i)=>{
     const c=r.split(',').map(x=>x.trim());
     if(i===0 && /^ticker$/i.test(c[0])){ hasHeader=true; return; }
-    if(c.length===1){ c[0].split(/\s+/).forEach(t=>t&&out.push({ticker:t.toUpperCase(),exchange:'NSE',color:'none',list:'Imported'})); return; }
+    if(c.length===1){ c[0].split(/\s+/).forEach(t=>t&&out.push({ticker:t.toUpperCase(),exchange:wlSettings().defaultExchange||'NSE',color:'none',list:'Imported'})); return; }
     if(!c[0]) return;
     const color=(c[2]||'none').toLowerCase();
     out.push({ticker:c[0].toUpperCase(),exchange:(c[1]||'NSE').toUpperCase(),color:WL_COLORS[color]?color:'none',list:c.slice(3).join(',')||'Imported'});
@@ -1850,7 +1961,7 @@ function wlAddTicker(){
   const inp=document.getElementById('wl-add'); const raw=inp.value.trim().toUpperCase(); if(!raw) return;
   const d=wlLoad(); const name=document.getElementById('wl-list').value; const l=d.lists.find(x=>x.name===name);
   if(!l){ toast('Import or create a watchlist first',true); return; }
-  let ex='NSE', t=raw; if(raw.indexOf(':')>0){ ex=raw.split(':')[0]; t=raw.split(':').slice(1).join(':'); }
+  let ex=wlSettings().defaultExchange||'NSE', t=raw; if(raw.indexOf(':')>0){ ex=raw.split(':')[0]; t=raw.split(':').slice(1).join(':'); }
   if(!/^[A-Z0-9&._-]+$/.test(t)){ toast('Invalid ticker',true); return; }
   if(l.items.some(i=>i.ticker===t&&i.exchange===ex)){ toast(t+' is already in this list',true); return; }
   l.items.push({ticker:t,exchange:ex,color:'none'}); wlSave(d); inp.value=''; renderWatchlistTab();
@@ -1871,9 +1982,12 @@ function wlDeleteList(){
 }
 function renderWatchlistTab(){
   const d=wlLoad(); const sel=document.getElementById('wl-list'); if(!sel) return;
+  const S=wlSettings();
   const prev=sel.value;
   sel.innerHTML=d.lists.map(l=>'<option value="'+wlEsc(l.name)+'">'+wlEsc(l.name)+' ('+l.items.length+')</option>').join('')||'<option value="">No watchlists yet</option>';
   if(d.lists.some(l=>l.name===prev)) sel.value=prev;
+  else if(d.lists.some(l=>l.name===S.defaultList)) sel.value=S.defaultList;
+  else if(d.lists.length) sel.value=d.lists[0].name;
   const li=d.lists.findIndex(l=>l.name===sel.value);
   const total=d.lists.reduce((n,l)=>n+l.items.length,0);
   const flagged=d.lists.reduce((n,l)=>n+l.items.filter(i=>i.color==='green'||i.color==='red').length,0);
@@ -1881,23 +1995,81 @@ function renderWatchlistTab(){
   const body=document.getElementById('wl-body');
   if(li<0){ body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">Import your extension backup to see your watchlists here.</td></tr>'; return; }
   const col=document.getElementById('wl-color').value, q=document.getElementById('wl-search').value.trim().toUpperCase();
+  const items=d.lists[li].items;
+  let order=items.map((_,i)=>i);
+  if(S.sort==='az') order.sort((a,b)=>items[a].ticker.localeCompare(items[b].ticker));
+  else if(S.sort==='za') order.sort((a,b)=>items[b].ticker.localeCompare(items[a].ticker));
   const rows=[];
-  d.lists[li].items.forEach((it,ti)=>{
+  order.forEach(ti=>{
+    const it=items[ti];
     if(col && (it.color||'none')!==col) return;
     if(q && it.ticker.indexOf(q)<0) return;
     const t=encodeURIComponent(it.ticker), ex=encodeURIComponent(it.exchange);
+    let links='';
+    if(S.showTradingView!==false) links+='<a href="https://www.tradingview.com/chart/?symbol='+ex+'%3A'+t+'" target="_blank" rel="noopener">TradingView</a>';
+    if(S.showScreener!==false && (it.exchange==='NSE'||it.exchange==='BSE')) links+=(links?' · ':'')+'<a href="https://www.screener.in/company/'+t+'/" target="_blank" rel="noopener">Screener</a>';
     rows.push('<tr><td>'+(rows.length+1)+'</td><td><b>'+wlEsc(it.ticker)+'</b></td><td>'+wlEsc(it.exchange)+'</td>'
       +'<td><button class="btn-action-icon" style="width:auto;padding:0 8px" title="Click to change flag" onclick="wlCycle('+li+','+ti+')">'+WL_COLORS[it.color||'none']+'</button></td>'
-      +'<td><a href="https://www.tradingview.com/chart/?symbol='+ex+'%3A'+t+'" target="_blank" rel="noopener">TradingView</a>'
-      +(it.exchange==='NSE'||it.exchange==='BSE'?' · <a href="https://www.screener.in/company/'+t+'/" target="_blank" rel="noopener">Screener</a>':'')+'</td>'
+      +'<td>'+(links||'<span style="color:var(--text-3)">—</span>')+'</td>'
       +'<td><button class="btn-action-icon" title="Remove" onclick="wlRemove('+li+','+ti+')">×</button></td></tr>');
   });
-  body.innerHTML=rows.join('')||'<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">No stocks match this filter.</td></tr>';
+  body.innerHTML=rows.join('')||'<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">'+(items.length?'No stocks match this filter.':'This watchlist is empty — add a stock above.')+'</td></tr>';
+}
+
+/* ── WATCHLIST SETTINGS TAB ── */
+function renderWlSettings(){
+  const s=wlSettings(), d=wlLoad();
+  const dl=document.getElementById('wls-default-list');
+  if(dl){
+    const prev=s.defaultList;
+    dl.innerHTML='<option value="">First available</option>'+d.lists.map(l=>'<option value="'+wlEsc(l.name)+'">'+wlEsc(l.name)+' ('+l.items.length+')</option>').join('');
+    dl.value=d.lists.some(l=>l.name===prev)?prev:'';
+  }
+  const de=document.getElementById('wls-default-exchange'); if(de) de.value=s.defaultExchange;
+  const so=document.getElementById('wls-sort'); if(so) so.value=s.sort;
+  const tv=document.getElementById('wls-tv'); if(tv) tv.checked=s.showTradingView!==false;
+  const sc=document.getElementById('wls-screener'); if(sc) sc.checked=s.showScreener!==false;
+  const st=document.getElementById('wls-stats');
+  if(st){
+    const total=d.lists.reduce((n,l)=>n+l.items.length,0);
+    st.textContent=d.lists.length+' watchlist(s) · '+total+' stock(s), synced to your account.';
+  }
+}
+function wlClearAll(){
+  const d=wlLoad();
+  if(!d.lists.length){ toast('No watchlists to delete',true); return; }
+  const total=d.lists.reduce((n,l)=>n+l.items.length,0);
+  if(!confirm('Delete '+d.lists.length+' watchlist(s) and '+total+' stock(s)? This cannot be undone.')) return;
+  wlSave({lists:[]}); renderWatchlistTab(); renderWlSettings(); toast('All watchlists deleted');
+}
+
+/* ── JOURNAL ⇄ WATCHLIST MODE ──
+   The active section is a per-device UI choice, so it deliberately lives under a
+   non-tj_ key and is NOT synced (syncing it would yank other devices around). */
+const MODE_KEY='wl_ui_mode';
+const WL_TABS=['watchlist','wlsettings'];
+const _lastTab={journal:'dashboard',watchlist:'watchlist'};
+function tabMode(tab){ return WL_TABS.indexOf(tab)>-1 ? 'watchlist' : 'journal'; }
+function tabEl(mode,tab){ const g=document.getElementById('tabs-'+mode); return g ? g.querySelector('[data-tab="'+tab+'"]') : null; }
+function setMode(mode,keepTab){
+  mode = mode==='watchlist' ? 'watchlist' : 'journal';
+  if(!keepTab) localStorage.setItem(MODE_KEY, mode);
+  const gj=document.getElementById('tabs-journal'), gw=document.getElementById('tabs-watchlist');
+  if(gj) gj.hidden = mode!=='journal';
+  if(gw) gw.hidden = mode!=='watchlist';
+  ['journal','watchlist'].forEach(m=>{
+    const b=document.getElementById('mode-btn-'+m); if(!b) return;
+    b.classList.toggle('active', m===mode);
+    b.setAttribute('aria-selected', String(m===mode));
+  });
+  if(keepTab) return;
+  switchTab(_lastTab[mode], tabEl(mode,_lastTab[mode]));
 }
 
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
+  if(el) el.classList.add('active');
+  _lastTab[tabMode(tab)]=tab;
   document.getElementById('view-dashboard').style.display = tab==='dashboard'?'block':'none';
   document.getElementById('view-all').style.display      = (tab==='all'||tab==='open'||tab==='closed')?'block':'none';
   document.getElementById('view-risk').style.display     = tab==='risk'?'block':'none';
@@ -1907,7 +2079,9 @@ function switchTab(tab, el){
   document.getElementById('view-rules').style.display    = tab==='rules'?'block':'none';
   document.getElementById('view-settings').style.display = tab==='settings'?'block':'none';
   document.getElementById('view-watchlist').style.display = tab==='watchlist'?'block':'none';
+  document.getElementById('view-wlsettings').style.display = tab==='wlsettings'?'block':'none';
   if(tab==='watchlist') renderWatchlistTab();
+  if(tab==='wlsettings') renderWlSettings();
   if(tab==='settings' && typeof loadUpstoxStatus==='function') loadUpstoxStatus();
 
   document.getElementById('view-charts').style.display   = tab==='charts'?'block':'none';
@@ -4184,9 +4358,14 @@ function quoteResetAuto(){
 const savedThemeSwitch=document.getElementById('theme-switch');
 if(savedThemeSwitch) savedThemeSwitch.checked = document.documentElement.getAttribute('data-theme')==='dark';
 
+// Restore the last active section first: if any render call below throws, the
+// sidebar toggle should still come up in the right state. setMode lands on that
+// section's tab, which renders it (or not, for the watchlist) so the dashboard is
+// only drawn when it is actually on screen.
+setMode(localStorage.getItem(MODE_KEY)==='watchlist'?'watchlist':'journal');
+
 refreshSummary();
 renderTable();
-renderDashboard();
 renderRulesList();
 refreshComplianceSummary();
 // Start quote engine after DOM ready
@@ -4460,7 +4639,7 @@ function maybeAutoRefreshCmp(){
 
 window.addEventListener('message', function(e){
   const d = e.data;
-  if(d && d.__tj && d.type==='tj-wl-refresh'){ try{ if(typeof renderWatchlistTab==='function') renderWatchlistTab(); }catch(_){} return; }
+  if(d && d.__tj && d.type==='tj-wl-refresh'){ try{ if(typeof renderWatchlistTab==='function') renderWatchlistTab(); if(typeof renderWlSettings==='function') renderWlSettings(); }catch(_){} return; }
   if(d && d.__tj && d.type==='tj-sync-status'){
     const el=document.getElementById('acct-sync');
     if(el) el.textContent = d.status==='saving' ? 'Saving…' : 'Synced';
