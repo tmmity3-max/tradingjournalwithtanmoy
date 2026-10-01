@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 
 export function LoginModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -38,15 +37,11 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
 
   const google = async () => {
     setError(null);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/dashboard" },
     });
-    if (result.error) {
-      setError("Google sign-in failed. Please try again.");
-      return;
-    }
-    if (result.redirected) return;
-    goNext();
+    if (err) setError(err.message);
   };
 
   return (
