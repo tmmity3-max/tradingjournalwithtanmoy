@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
 
@@ -33,8 +33,8 @@ function LandingPage() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
+    currentUser().then((user) => {
+      if (user) {
         setSignedIn(true);
         navigate({ to: "/dashboard", replace: true });
       }

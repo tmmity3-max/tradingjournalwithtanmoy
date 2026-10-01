@@ -1,7 +1,20 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { canonical, pullRemote, pushRemote, readLocal, writeLocal, type Snapshot } from "@/lib/journal-sync";
+import { onSnapshot } from "firebase/firestore";
+import { currentUser, signOutUser } from "@/lib/auth";
+import {
+  canonical,
+  chartObjectUrl,
+  deleteChart,
+  journalCol,
+  pullRemote,
+  pushRemote,
+  readLocal,
+  toSnapshot,
+  uploadChart,
+  writeLocal,
+} from "@/lib/journal-sync";
+import type { Snapshot } from "@/lib/journal-sync";
 import { fetchUpstoxCmp, getUpstoxStatus, saveUpstoxToken } from "@/lib/upstox.functions";
 
 
@@ -35,6 +48,7 @@ function JournalPage() {
   const [status, setStatus] = useState<"synced" | "saving">("synced");
   const [email, setEmail] = useState<string | null>(null);
   const lastJson = useRef<string>("");
+  const lastSnap = useRef<Snapshot | null>(null);
   const lastPushAt = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -43,8 +57,7 @@ function JournalPage() {
     let cleanupFns: Array<() => void> = [];
 
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      const user = await currentUser();
       if (!user) {
         navigate({ to: "/auth", search: { next: "/dashboard" }, replace: true });
         return;
@@ -52,14 +65,16 @@ function JournalPage() {
       if (cancelled) return;
       setEmail(user.email ?? null);
 
-      const remote = await pullRemote(user.id);
+      const remote = await pullRemote(user.uid);
       const local = readLocal();
       if (remote && Object.keys(remote).length > 0) {
         writeLocal(remote);
         lastJson.current = canonical(remote);
+        lastSnap.current = remote;
       } else {
-        await pushRemote(user.id, local);
+        await pushRemote(user.uid, local, null);
         lastJson.current = canonical(local);
+        lastSnap.current = local;
       }
       if (cancelled) return;
       setReady(true);
@@ -77,10 +92,12 @@ function JournalPage() {
           lastJson.current = latestJson;
           try {
             lastPushAt.current = Date.now();
-            await pushRemote(user.id, latest);
+            await pushRemote(user.uid, latest, lastSnap.current);
+            lastSnap.current = latest;
             lastPushAt.current = Date.now();
           } catch (e) {
             console.error(e);
+            lastJson.current = ""; // force a retry on the next poll
           }
           setStatus("synced");
         }, 700);
@@ -93,43 +110,36 @@ function JournalPage() {
       cleanupFns.push(() => clearInterval(poll));
       cleanupFns.push(() => timer && clearTimeout(timer));
 
-      const channel = supabase
-        .channel("journal_state_sync")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "journal_state",
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-            const incoming = (payload.new as { data?: Snapshot } | null)?.data;
-            if (!incoming) return;
-            const json = canonical(incoming);
-            if (json === lastJson.current) return;
-            // Ignore the echo of our own recent write.
-            if (Date.now() - lastPushAt.current < 4000) {
-              lastJson.current = json;
-              return;
-            }
-            // Only act if the incoming data really differs from what is on this device.
-            if (json === canonical(readLocal())) {
-              lastJson.current = json;
-              return;
-            }
-            lastJson.current = json;
-            writeLocal(incoming);
-            if (iframeRef.current) {
-              // eslint-disable-next-line no-self-assign
-              iframeRef.current.src = iframeRef.current.src;
-            }
-          },
-        )
-        .subscribe();
-      cleanupFns.push(() => {
-        supabase.removeChannel(channel);
+      const unsubscribe = onSnapshot(journalCol(user.uid), (qs) => {
+        // Our own writes are echoed locally first; only react to real server data.
+        if (qs.metadata.hasPendingWrites || qs.empty) return;
+        const incoming = toSnapshot(qs);
+        const json = canonical(incoming);
+        if (json === lastJson.current) {
+          lastSnap.current = incoming;
+          return;
+        }
+        // Ignore the echo of our own recent write.
+        if (Date.now() - lastPushAt.current < 4000) {
+          lastJson.current = json;
+          lastSnap.current = incoming;
+          return;
+        }
+        // Only act if the incoming data really differs from what is on this device.
+        if (json === canonical(readLocal())) {
+          lastJson.current = json;
+          lastSnap.current = incoming;
+          return;
+        }
+        lastJson.current = json;
+        lastSnap.current = incoming;
+        writeLocal(incoming);
+        if (iframeRef.current) {
+          // eslint-disable-next-line no-self-assign
+          iframeRef.current.src = iframeRef.current.src;
+        }
       });
+      cleanupFns.push(unsubscribe);
     })();
 
     return () => {
@@ -158,8 +168,7 @@ function JournalPage() {
           }
         | null;
       if (!d || !d.__tj || !d.rid || !d.type) return;
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
+      const user = await currentUser();
       if (!user) return reply(event.source, { rid: d.rid, error: "auth" });
 
       try {
@@ -185,23 +194,16 @@ function JournalPage() {
         }
 
         if (d.type === "tj-chart-upload" && d.dataUrl) {
-          const blob = await (await fetch(d.dataUrl)).blob();
-          const path = `${user.id}/${d.tradeId ?? "trade"}-${Date.now()}.jpg`;
-          const { error } = await supabase.storage
-            .from("trade-charts")
-            .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-          if (error) throw error;
+          const chartId = encodeURIComponent(`${d.tradeId ?? "trade"}-${Date.now()}`);
+          const path = await uploadChart(user.uid, chartId, d.dataUrl);
           return reply(event.source, { rid: d.rid, path });
         }
         if (d.type === "tj-chart-url" && d.path) {
-          const { data, error } = await supabase.storage
-            .from("trade-charts")
-            .createSignedUrl(d.path, 60 * 60 * 24 * 7);
-          if (error || !data) throw error ?? new Error("no url");
-          return reply(event.source, { rid: d.rid, url: data.signedUrl });
+          const url = await chartObjectUrl(user.uid, d.path);
+          return reply(event.source, { rid: d.rid, url });
         }
         if (d.type === "tj-chart-delete" && d.path) {
-          await supabase.storage.from("trade-charts").remove([d.path]);
+          await deleteChart(user.uid, d.path);
           return reply(event.source, { rid: d.rid, ok: true });
         }
       } catch (e) {
@@ -223,16 +225,16 @@ function JournalPage() {
 
   const signOut = async () => {
     const snap = readLocal();
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
+    const user = await currentUser();
+    if (user) {
       try {
-        await pushRemote(data.user.id, snap);
+        await pushRemote(user.uid, snap, lastSnap.current);
       } catch (e) {
         console.error(e);
       }
     }
     Object.keys(snap).forEach((k) => localStorage.removeItem(k));
-    await supabase.auth.signOut();
+    await signOutUser();
     navigate({ to: "/", replace: true });
   };
 

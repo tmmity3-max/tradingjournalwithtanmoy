@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireFirebaseAuth } from "@/integrations/firebase/auth-middleware";
+
+const tokenPath = (uid: string) => `users/${uid}/private/upstox`;
 
 type InstrumentMap = Record<string, string>;
 
@@ -49,38 +51,33 @@ async function loadInstruments(exchange: "NSE" | "BSE"): Promise<InstrumentMap> 
 
 /** Save (or clear) the signed-in user's own Upstox access token. */
 export const saveUpstoxToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireFirebaseAuth])
   .inputValidator((data: { token: string }) => ({ token: String(data?.token ?? "").trim() }))
   .handler(async ({ data, context }) => {
     if (data.token.length > 4000) throw new Error("Token too long");
-    const { error } = await context.supabase.from("broker_credentials").upsert(
-      { user_id: context.userId, upstox_token: data.token || null },
-      { onConflict: "user_id" },
-    );
-    if (error) throw new Error(error.message);
+    await context.db.setDoc(tokenPath(context.userId), {
+      token: { stringValue: data.token },
+      updatedAt: { timestampValue: new Date().toISOString() },
+    });
     return { ok: true, connected: data.token.length > 0 };
   });
 
 /** Whether this user has a token stored (never returns the token itself). */
 export const getUpstoxStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireFirebaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase
-      .from("broker_credentials")
-      .select("upstox_token, updated_at")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    const token = data?.upstox_token ?? "";
+    const stored = await context.db.getDoc(tokenPath(context.userId));
+    const token = stored?.fields?.['token']?.stringValue ?? "";
     return {
       connected: token.length > 0,
       hint: token ? `${token.slice(0, 6)}…${token.slice(-4)}` : "",
-      updatedAt: data?.updated_at ?? null,
+      updatedAt: stored?.fields?.['updatedAt']?.timestampValue ?? null,
     };
   });
 
 /** Latest traded price for a batch of NSE/BSE equity symbols. */
 export const fetchUpstoxCmp = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireFirebaseAuth])
   .inputValidator((data: { symbols: Array<{ symbol: string; exchange: string }> }) => {
     const list = Array.isArray(data?.symbols) ? data.symbols.slice(0, 200) : [];
     return {
@@ -93,12 +90,8 @@ export const fetchUpstoxCmp = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data, context }) => {
-    const { data: cred } = await context.supabase
-      .from("broker_credentials")
-      .select("upstox_token")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    const token = cred?.upstox_token;
+    const cred = await context.db.getDoc(tokenPath(context.userId));
+    const token = cred?.fields?.['token']?.stringValue;
     if (!token) return { error: "no-token" as const, prices: {} as Record<string, number> };
 
     const wanted = data.symbols.filter((s) => s.exchange === "NSE" || s.exchange === "BSE");

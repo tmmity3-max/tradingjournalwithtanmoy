@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { authMessage, currentUser, signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -45,8 +45,8 @@ function AuthPage() {
 
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) goNext();
+    currentUser().then((user) => {
+      if (user) goNext();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, next]);
@@ -56,31 +56,24 @@ function AuthPage() {
     setBusy(true);
     setError(null);
     setMessage(null);
-    const returnTo = next ? window.location.origin + next : window.location.origin;
-    if (mode === "signup") {
-      const { data, error: err } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: returnTo },
-      });
-      if (err) setError(err.message);
-      else if (!data.session) setMessage("Check your email to confirm your account, then sign in.");
-      else goNext();
-    } else {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) setError(err.message);
-      else goNext();
+    try {
+      if (mode === "signup") await signUpWithEmail(email, password);
+      else await signInWithEmail(email, password);
+      goNext();
+    } catch (e) {
+      setError(authMessage(e) || null);
     }
     setBusy(false);
   };
 
   const google = async () => {
     setError(null);
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: next ? window.location.origin + next : window.location.origin + "/dashboard" },
-    });
-    if (err) setError(err.message);
+    try {
+      await signInWithGoogle();
+      goNext();
+    } catch (e) {
+      setError(authMessage(e) || null);
+    }
   };
 
 

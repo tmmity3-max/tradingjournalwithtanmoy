@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { authMessage, signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/auth";
 
 export function LoginModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -18,30 +18,24 @@ export function LoginModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError(null);
     setMessage(null);
-    if (mode === "signup") {
-      const { data, error: err } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin + "/dashboard" },
-      });
-      if (err) setError(err.message);
-      else if (!data.session) setMessage("Check your email to confirm your account, then sign in.");
-      else goNext();
-    } else {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) setError(err.message);
-      else goNext();
+    try {
+      if (mode === "signup") await signUpWithEmail(email, password);
+      else await signInWithEmail(email, password);
+      goNext();
+    } catch (e) {
+      setError(authMessage(e) || null);
     }
     setBusy(false);
   };
 
   const google = async () => {
     setError(null);
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
-    });
-    if (err) setError(err.message);
+    try {
+      await signInWithGoogle();
+      goNext();
+    } catch (e) {
+      setError(authMessage(e) || null);
+    }
   };
 
   return (
