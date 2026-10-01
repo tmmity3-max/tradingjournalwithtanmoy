@@ -989,7 +989,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
         <div class="card-title">👁 Extension Watchlist</div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
           <div style="font-size:.76rem;color:var(--text-2);line-height:1.5">
-            <b>Auto-sync:</b> in the TM Watchlist extension open <b>Settings → Trading Journal Sync</b> and connect with this account. Your watchlists then appear here automatically after every change.<br><br>Prefer manual? Use <b>Backup All</b> in the extension and import the CSV below.
+            <b>Auto-sync:</b> in the TM Watchlist extension open <b>Settings → Trading Journal Sync</b> and connect with this account. Changes sync <b>both ways</b>: edits in the extension appear here, and flags, removals and new stocks you change here flow back to the extension (within about a minute, or when you open TradingView/Screener/Kite).<br><br>Prefer manual? Use <b>Backup All</b> in the extension and import the CSV below.
           </div>
           <div class="form-group">
             <label>Backup CSV file</label>
@@ -1014,6 +1014,10 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
           </select>
           <input id="wl-search" class="filter-sel" placeholder="Search ticker…" oninput="renderWatchlistTab()" style="min-width:140px;cursor:text">
           <button class="btn-action-icon" style="width:auto;padding:0 10px" title="Delete this watchlist" onclick="wlDeleteList()">🗑</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)">
+          <input id="wl-add" class="filter-sel" placeholder="Add stock to this list, e.g. TCS or BSE:500325" style="flex:1;cursor:text" onkeydown="if(event.key==='Enter')wlAddTicker()">
+          <button class="btn-save" onclick="wlAddTicker()" style="display:flex;justify-content:center">➕ Add</button>
         </div>
         <div style="overflow-x:auto">
           <table class="trades">
@@ -1841,6 +1845,15 @@ function wlExportCsv(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='tm_watchlist_backup.csv'; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function wlAddTicker(){
+  const inp=document.getElementById('wl-add'); const raw=inp.value.trim().toUpperCase(); if(!raw) return;
+  const d=wlLoad(); const name=document.getElementById('wl-list').value; const l=d.lists.find(x=>x.name===name);
+  if(!l){ toast('Import or create a watchlist first',true); return; }
+  let ex='NSE', t=raw; if(raw.indexOf(':')>0){ ex=raw.split(':')[0]; t=raw.split(':').slice(1).join(':'); }
+  if(!/^[A-Z0-9&._-]+$/.test(t)){ toast('Invalid ticker',true); return; }
+  if(l.items.some(i=>i.ticker===t&&i.exchange===ex)){ toast(t+' is already in this list',true); return; }
+  l.items.push({ticker:t,exchange:ex,color:'none'}); wlSave(d); inp.value=''; renderWatchlistTab();
 }
 function wlCycle(li,ti){
   const d=wlLoad(); const it=d.lists[li]&&d.lists[li].items[ti]; if(!it) return;
