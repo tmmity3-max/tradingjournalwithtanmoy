@@ -133,9 +133,13 @@ export const fetchUpstoxCmp = createServerFn({ method: "POST" })
         data?: Record<string, { last_price?: number; instrument_token?: string }>;
       };
       const byKey: Record<string, number> = {};
-      for (const entry of Object.values(body.data ?? {})) {
-        if (entry?.instrument_token && typeof entry.last_price === "number") {
-          byKey[entry.instrument_token] = entry.last_price;
+      for (const [responseKey, entry] of Object.entries(body.data ?? {})) {
+        if (typeof entry.last_price === "number") {
+          // Upstox has returned both the requested instrument key and a
+          // separate instrument_token across API versions. Keep both aliases
+          // so symbol resolution remains reliable either way.
+          byKey[responseKey] = entry.last_price;
+          if (entry.instrument_token) byKey[entry.instrument_token] = entry.last_price;
         }
       }
       for (const [symKey, instKey] of Object.entries(keyBySymbol)) {

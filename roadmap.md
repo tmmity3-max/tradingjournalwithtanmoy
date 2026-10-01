@@ -1,0 +1,2 @@
+- [x] Fix Upstox CMP response mapping so returned prices update open trades.
+- [x] Return to the full landing page after signing out.
