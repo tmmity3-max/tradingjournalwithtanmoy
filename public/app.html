@@ -613,6 +613,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="tab-group-label">🛠 Tools</div>
     <div class="tab" onclick="switchTab('risk',this)">Position Sizer</div>
     <div class="tab" onclick="switchTab('ledger',this)">💰 Capital Ledger</div>
+    <div class="tab" onclick="switchTab('watchlist',this)">👁 Watchlist</div>
     <div class="tab" onclick="switchTab('rules',this)">📋 My Rules</div>
     <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
   </div>
@@ -982,6 +983,49 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   </div>
 
   <!-- ── RULES VIEW ── -->
+  <div id="view-watchlist" style="display:none">
+    <div style="display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start" class="rules-layout">
+      <div class="ledger-add-card">
+        <div class="card-title">👁 Extension Watchlist</div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:.76rem;color:var(--text-2);line-height:1.5">
+            Bring your TM Watchlist extension data here. In the extension open <b>Settings → Backup All</b>,
+            then choose the CSV file below (or paste its contents). Columns: Ticker, Exchange, Color, Watchlist.
+          </div>
+          <div class="form-group">
+            <label>Backup CSV file</label>
+            <input type="file" id="wl-file" accept=".csv,text/csv,text/plain" onchange="wlImportFile(this)">
+          </div>
+          <div class="form-group">
+            <label>…or paste CSV / tickers</label>
+            <textarea id="wl-paste" placeholder="Ticker,Exchange,Color,Watchlist&#10;RELIANCE,NSE,green,My Watchlist" style="min-height:90px"></textarea>
+          </div>
+          <button class="btn-save" style="width:100%;justify-content:center;display:flex" onclick="wlImportPaste()">⬇ Import into Journal</button>
+          <button class="btn-save" style="width:100%;justify-content:center;display:flex;background:var(--surface-2);color:var(--text);border:1.5px solid var(--border)" onclick="wlExportCsv()">⬆ Export CSV (for the extension)</button>
+          <div id="wl-summary" style="background:var(--surface-2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);font-size:.78rem;color:var(--text-2)"></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="card-title" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span>📋 Watchlists</span>
+          <select id="wl-list" class="filter-sel" onchange="renderWatchlistTab()"></select>
+          <select id="wl-color" class="filter-sel" onchange="renderWatchlistTab()">
+            <option value="">All colours</option><option value="green">🟢 Green</option><option value="red">🔴 Red</option>
+            <option value="yellow">🟡 Yellow</option><option value="none">⚪ None</option>
+          </select>
+          <input id="wl-search" class="filter-sel" placeholder="Search ticker…" oninput="renderWatchlistTab()" style="min-width:140px;cursor:text">
+          <button class="btn-action-icon" style="width:auto;padding:0 10px" title="Delete this watchlist" onclick="wlDeleteList()">🗑</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="trades">
+            <thead><tr><th>#</th><th>Ticker</th><th>Exchange</th><th>Flag</th><th>Open</th><th></th></tr></thead>
+            <tbody id="wl-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="view-rules" style="display:none">
     <div style="display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start" class="rules-layout">
       <!-- Left: Add rule -->
@@ -1747,6 +1791,98 @@ function updateTagFilter(){
 /* ══════════════════════════════════════════════
    TAB SWITCH
 ══════════════════════════════════════════════ */
+
+/* ===== WATCHLIST (TM Watchlist extension data) — stored in tj_watchlists, synced like the rest of the journal ===== */
+const WL_KEY='tj_watchlists';
+const WL_COLORS={green:'🟢',red:'🔴',yellow:'🟡',none:'⚪'};
+function wlLoad(){ try{ const d=JSON.parse(localStorage.getItem(WL_KEY)||'{}'); return d&&Array.isArray(d.lists)?d:{lists:[]}; }catch(e){ return {lists:[]}; } }
+function wlSave(d){ localStorage.setItem(WL_KEY,JSON.stringify(d)); }
+function wlEsc(v){ return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function wlParseCsv(text){
+  const rows=text.split(/\r?\n/).map(r=>r.trim()).filter(Boolean);
+  const out=[]; let hasHeader=false;
+  rows.forEach((r,i)=>{
+    const c=r.split(',').map(x=>x.trim());
+    if(i===0 && /^ticker$/i.test(c[0])){ hasHeader=true; return; }
+    if(c.length===1){ c[0].split(/\s+/).forEach(t=>t&&out.push({ticker:t.toUpperCase(),exchange:'NSE',color:'none',list:'Imported'})); return; }
+    if(!c[0]) return;
+    const color=(c[2]||'none').toLowerCase();
+    out.push({ticker:c[0].toUpperCase(),exchange:(c[1]||'NSE').toUpperCase(),color:WL_COLORS[color]?color:'none',list:c.slice(3).join(',')||'Imported'});
+  });
+  return out;
+}
+function wlImportText(text){
+  const rows=wlParseCsv(text);
+  if(!rows.length){ toast('No tickers found in that data',true); return; }
+  const d=wlLoad(); let added=0, updated=0;
+  rows.forEach(r=>{
+    let l=d.lists.find(x=>x.name===r.list);
+    if(!l){ l={name:r.list,items:[]}; d.lists.push(l); }
+    const ex=l.items.find(i=>i.ticker===r.ticker&&i.exchange===r.exchange);
+    if(ex){ if(ex.color!==r.color){ ex.color=r.color; updated++; } }
+    else { l.items.push({ticker:r.ticker,exchange:r.exchange,color:r.color}); added++; }
+  });
+  wlSave(d);
+  const sel=document.getElementById('wl-list'); if(sel && rows[0]) sel.value=rows[0].list;
+  renderWatchlistTab();
+  toast('Imported '+added+' new, '+updated+' updated');
+}
+function wlImportFile(inp){
+  const f=inp.files&&inp.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ wlImportText(String(rd.result||'')); inp.value=''; }; rd.readAsText(f);
+}
+function wlImportPaste(){
+  const t=document.getElementById('wl-paste'); if(!t.value.trim()){ toast('Paste some data first',true); return; }
+  wlImportText(t.value); t.value='';
+}
+function wlExportCsv(){
+  const d=wlLoad(); let csv='Ticker,Exchange,Color,Watchlist\n';
+  d.lists.forEach(l=>l.items.forEach(i=>{ csv+=i.ticker+','+i.exchange+','+(i.color||'none')+','+l.name+'\n'; }));
+  if(csv==='Ticker,Exchange,Color,Watchlist\n'){ toast('Nothing to export yet',true); return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='tm_watchlist_backup.csv'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function wlCycle(li,ti){
+  const d=wlLoad(); const it=d.lists[li]&&d.lists[li].items[ti]; if(!it) return;
+  const order=['none','green','red','yellow']; it.color=order[(order.indexOf(it.color||'none')+1)%order.length];
+  wlSave(d); renderWatchlistTab();
+}
+function wlRemove(li,ti){
+  const d=wlLoad(); if(!d.lists[li]) return; d.lists[li].items.splice(ti,1); wlSave(d); renderWatchlistTab();
+}
+function wlDeleteList(){
+  const d=wlLoad(); const name=document.getElementById('wl-list').value; const li=d.lists.findIndex(l=>l.name===name);
+  if(li<0) return;
+  if(!confirm('Delete watchlist "'+name+'" ('+d.lists[li].items.length+' stocks)?')) return;
+  d.lists.splice(li,1); wlSave(d); renderWatchlistTab();
+}
+function renderWatchlistTab(){
+  const d=wlLoad(); const sel=document.getElementById('wl-list'); if(!sel) return;
+  const prev=sel.value;
+  sel.innerHTML=d.lists.map(l=>'<option value="'+wlEsc(l.name)+'">'+wlEsc(l.name)+' ('+l.items.length+')</option>').join('')||'<option value="">No watchlists yet</option>';
+  if(d.lists.some(l=>l.name===prev)) sel.value=prev;
+  const li=d.lists.findIndex(l=>l.name===sel.value);
+  const total=d.lists.reduce((n,l)=>n+l.items.length,0);
+  const flagged=d.lists.reduce((n,l)=>n+l.items.filter(i=>i.color==='green'||i.color==='red').length,0);
+  document.getElementById('wl-summary').innerHTML='<b>'+d.lists.length+'</b> watchlists · <b>'+total+'</b> stocks · <b>'+flagged+'</b> red/green flagged';
+  const body=document.getElementById('wl-body');
+  if(li<0){ body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">Import your extension backup to see your watchlists here.</td></tr>'; return; }
+  const col=document.getElementById('wl-color').value, q=document.getElementById('wl-search').value.trim().toUpperCase();
+  const rows=[];
+  d.lists[li].items.forEach((it,ti)=>{
+    if(col && (it.color||'none')!==col) return;
+    if(q && it.ticker.indexOf(q)<0) return;
+    const t=encodeURIComponent(it.ticker), ex=encodeURIComponent(it.exchange);
+    rows.push('<tr><td>'+(rows.length+1)+'</td><td><b>'+wlEsc(it.ticker)+'</b></td><td>'+wlEsc(it.exchange)+'</td>'
+      +'<td><button class="btn-action-icon" style="width:auto;padding:0 8px" title="Click to change flag" onclick="wlCycle('+li+','+ti+')">'+WL_COLORS[it.color||'none']+'</button></td>'
+      +'<td><a href="https://www.tradingview.com/chart/?symbol='+ex+'%3A'+t+'" target="_blank" rel="noopener">TradingView</a>'
+      +(it.exchange==='NSE'||it.exchange==='BSE'?' · <a href="https://www.screener.in/company/'+t+'/" target="_blank" rel="noopener">Screener</a>':'')+'</td>'
+      +'<td><button class="btn-action-icon" title="Remove" onclick="wlRemove('+li+','+ti+')">×</button></td></tr>');
+  });
+  body.innerHTML=rows.join('')||'<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">No stocks match this filter.</td></tr>';
+}
+
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
@@ -1758,6 +1894,8 @@ function switchTab(tab, el){
   document.getElementById('view-skipped').style.display  = tab==='skipped'?'block':'none';
   document.getElementById('view-rules').style.display    = tab==='rules'?'block':'none';
   document.getElementById('view-settings').style.display = tab==='settings'?'block':'none';
+  document.getElementById('view-watchlist').style.display = tab==='watchlist'?'block':'none';
+  if(tab==='watchlist') renderWatchlistTab();
   if(tab==='settings' && typeof loadUpstoxStatus==='function') loadUpstoxStatus();
 
   document.getElementById('view-charts').style.display   = tab==='charts'?'block':'none';
