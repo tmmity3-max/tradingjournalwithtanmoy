@@ -21,7 +21,6 @@ export const Route = createFileRoute("/")({
           "Log, analyse and improve your NSE, BSE and MCX trades. Position sizer, dashboards, Zerodha-style charges and cloud sync across devices.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://tradingjournalwithtanmoy.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: "https://tradingjournalwithtanmoy.lovable.app/" }],
