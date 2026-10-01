@@ -235,7 +235,7 @@ function JournalPage() {
     }
     Object.keys(snap).forEach((k) => localStorage.removeItem(k));
     await supabase.auth.signOut();
-    navigate({ to: "/auth", search: { next: "/dashboard" }, replace: true });
+    navigate({ to: "/", replace: true });
   };
 
   if (!ready) {

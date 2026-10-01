@@ -133,9 +133,10 @@ export const fetchUpstoxCmp = createServerFn({ method: "POST" })
         data?: Record<string, { last_price?: number; instrument_token?: string }>;
       };
       const byKey: Record<string, number> = {};
-      for (const entry of Object.values(body.data ?? {})) {
-        if (entry?.instrument_token && typeof entry.last_price === "number") {
-          byKey[entry.instrument_token] = entry.last_price;
+      for (const [responseKey, entry] of Object.entries(body.data ?? {})) {
+        const instrumentKey = entry?.instrument_token ?? responseKey;
+        if (instrumentKey && typeof entry.last_price === "number") {
+          byKey[instrumentKey] = entry.last_price;
         }
       }
       for (const [symKey, instKey] of Object.entries(keyBySymbol)) {
