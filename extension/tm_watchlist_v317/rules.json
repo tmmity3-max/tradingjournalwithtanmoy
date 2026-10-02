@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "Origin", "operation": "set", "value": "https://in.tradingview.com" },
+        { "header": "Referer", "operation": "set", "value": "https://in.tradingview.com/" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||symbol-search.tradingview.com/*",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]

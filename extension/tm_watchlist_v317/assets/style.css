@@ -1,0 +1,160 @@
+body {
+    transition: margin-right 0.2s ease-in-out;
+}
+
+:root {
+    --et-bg: #ffffff;
+    --et-fg: #1a1a1a;
+    --et-border: #e0e0e0;
+    --et-accent: #2962ff;
+    --et-accent-hover: #1e4bd1;
+    --et-visited: #673ab7;
+    --et-row-hover: #f5f5f5;
+    --et-red: #ff5252;
+    --et-green: #4caf50;
+}
+
+html[data-et-theme="dark"] {
+    --et-bg: #1e1e1e;
+    --et-fg: #e0e0e0;
+    --et-border: #333333;
+    --et-row-hover: #2d2d2d;
+}
+
+/* Injector UI Styles */
+.et-head-wl, .et-head-tv {
+    width: 50px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.et-col-wl {
+    cursor: pointer;
+    text-align: center;
+}
+
+.et-col-wl .et-icon {
+    color: #ccc;
+    transition: 0.2s;
+}
+
+.et-col-wl .et-icon.active {
+    color: var(--et-green, #4caf50);
+    transform: scale(1.2);
+}
+
+.et-col-tv {
+    text-align: center;
+}
+
+.et-btn-tv {
+    display: inline-block;
+    background: var(--et-accent, #2962ff);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-decoration: none;
+    cursor: pointer;
+    min-width: 38px;
+    text-align: center;
+}
+
+.et-btn-tv.visited {
+    background: var(--et-visited, #673ab7);
+}
+
+/* TradingView native right-toolbar button group (logo, watchlist, add, settings) */
+.et-tv-toolbar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0;
+    margin: 2px 0;
+    border-top: 1px solid rgba(128, 128, 128, 0.15);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.et-tv-toolbar-btn {
+    /* Width/height are set inline per-button to match TradingView's own
+       toolbar buttons on the page; these are just a sane fallback. */
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    border-radius: 4px;
+    color: inherit;
+    font-family: inherit;
+}
+
+.et-tv-toolbar-btn img {
+    width: 65%;
+    height: 65%;
+    object-fit: contain;
+    pointer-events: none;
+    border-radius: 4px;
+}
+
+.et-tv-toolbar-btn svg {
+    width: 55%;
+    height: 55%;
+    stroke: currentColor;
+    color: #9598a1;
+    pointer-events: none;
+}
+
+.et-tv-toolbar-btn:hover svg {
+    color: var(--et-accent, #2962ff);
+}
+
+.et-tv-toolbar-btn:hover {
+    background: rgba(128, 128, 128, 0.12);
+}
+
+.et-tv-toolbar-btn:active {
+    background: rgba(128, 128, 128, 0.2);
+}
+
+.et-tv-toolbar-btn.active {
+    background: rgba(41, 98, 255, 0.16);
+}
+
+.et-tv-toolbar-btn.active svg {
+    color: var(--et-accent, #2962ff);
+}
+
+.et-tv-toolbar-btn.active:hover {
+    background: rgba(41, 98, 255, 0.22);
+}
+
+/* Logo button — bigger, permanent brand-blue chip (SONAR-style), so it
+   stands out from the plain outline icons around it. */
+.et-tv-toolbar-btn-logo {
+    background: var(--et-accent, #2962ff);
+    border-radius: 8px;
+}
+
+.et-tv-toolbar-btn-logo img {
+    width: 72%;
+    height: 72%;
+    border-radius: 6px;
+}
+
+.et-tv-toolbar-btn-logo:hover {
+    background: var(--et-accent-hover, #1e4bd1);
+}
+
+.et-tv-toolbar-btn-logo.active {
+    background: var(--et-accent-hover, #1e4bd1);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}

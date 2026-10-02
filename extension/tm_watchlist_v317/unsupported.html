@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Watchlist Pro</title>
+    <style>
+      :root {
+        --et-bg: #ffffff;
+        --et-fg: #1a1a1a;
+        --et-border: #e0e0e0;
+        --et-accent: #2962ff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, system-ui, sans-serif;
+        background: var(--et-bg);
+        color: var(--et-fg);
+      }
+
+      .wrap {
+        padding: 16px;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+
+      .card {
+        border: 1px solid var(--et-border);
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      p {
+        margin: 10px 0;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #333;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: var(--et-accent);
+        color: #fff;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        transition: opacity 0.2s;
+      }
+
+      .button:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>👋 Hey there!</h1>
+        <p>Watchlist Pro works its magic on Screener.in, Zerodha, and TradingView — your go-to platforms for research, trading, and charting.</p>
+        <p>Head to one of these to unlock your full watchlist, TradingView charts, and smart scanning features.</p>
+        <div class="links">
+          <a class="button" href="https://www.screener.in/" target="_blank" rel="noopener noreferrer">Open Screener.in</a>
+          <a class="button" href="https://kite.zerodha.com/" target="_blank" rel="noopener noreferrer">Open Zerodha</a>
+          <a class="button" href="https://in.tradingview.com/" target="_blank" rel="noopener noreferrer">Open TradingView</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

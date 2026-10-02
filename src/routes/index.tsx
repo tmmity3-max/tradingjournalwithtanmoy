@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
-const EXTENSION_URL = "https://chromewebstore.google.com/detail/gjbfkcopkclkgaagngdlhcikbgginlbf";
+// TM Watchlist v3.17.1 — own build, served from /public so the button
+// downloads our ZIP instead of forwarding to the original Eventrade listing.
+const EXTENSION_FILE = "/tm-watchlist-v3.17.1.zip";
+const EXTENSION_NAME = "TM Watchlist v3.17.1";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",
@@ -128,12 +131,11 @@ function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
-                href={EXTENSION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={EXTENSION_FILE}
+                download={EXTENSION_NAME}
                 className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-800 shadow-xl transition-colors hover:bg-blue-50"
               >
-                Install Free Extension
+                Download Extension (.zip)
               </a>
               <button
                 onClick={() => (signedIn ? navigate({ to: "/dashboard" }) : setOpen(true))}
@@ -148,6 +150,30 @@ function LandingPage() {
               <span className="rounded-xl bg-white px-4 py-2 text-slate-800 shadow-xl">TradingView</span>
               <span aria-hidden>→</span>
               <span className="rounded-xl bg-slate-900 px-4 py-2 shadow-xl">Zerodha Kite</span>
+            </div>
+
+            <div className="mx-auto mt-10 max-w-2xl rounded-xl bg-white/10 p-6 text-left shadow-xl backdrop-blur">
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-100">Install in 3 steps</p>
+              <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-white">
+                <li>
+                  Download <span className="font-semibold">{EXTENSION_NAME}.zip</span> and unzip it anywhere
+                  on your computer.
+                </li>
+                <li>
+                  Open{" "}
+                  <code className="rounded bg-slate-900 px-1.5 py-0.5 text-xs">chrome://extensions</code> and
+                  turn on <span className="font-semibold">Developer mode</span> (top right).
+                </li>
+                <li>
+                  Click <span className="font-semibold">Load unpacked</span> and select the unzipped{" "}
+                  <code className="rounded bg-slate-900 px-1.5 py-0.5 text-xs">tm_watchlist_v317</code> folder
+                  (the one containing <code className="rounded bg-slate-900 px-1.5 py-0.5 text-xs">manifest.json</code>).
+                </li>
+              </ol>
+              <p className="mt-4 text-xs text-blue-100">
+                Your watchlists stay in Chrome&apos;s local storage — nothing leaves your machine until you
+                connect the extension to your journal below.
+              </p>
             </div>
           </div>
 
@@ -204,6 +230,12 @@ function LandingPage() {
               <p className="mt-2 max-w-xl text-sm text-blue-100">
                 Log trades, track capital and review your extension watchlists together. Connect the extension to your account, manage
                 your lists there, and they appear in the Watchlist section of the website on every device.
+              </p>
+              <p className="mt-3 max-w-xl text-sm text-blue-100">
+                To connect: install the extension, open its sidebar on any supported site, then go to{" "}
+                <span className="font-semibold text-white">Settings → Trading Journal Sync</span> and press{" "}
+                <span className="font-semibold text-white">Connect &amp; Sync</span>. The extension writes your
+                lists to this site, and they sync to every device you sign in on.
               </p>
             </div>
             <button

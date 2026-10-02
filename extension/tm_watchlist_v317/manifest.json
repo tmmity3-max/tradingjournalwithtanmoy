@@ -1,0 +1,87 @@
+{
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  "manifest_version": 3,
+  "name": "TM Watchlist \u2014 Watchlist for Zerodha, TradingView & Screener",
+  "version": "3.17.1",
+  "description": "A unified Watchlist for multiple platforms Screener, TradingView & Zerodha. Built and improved by Tanmoy Maity. Save time switching between platforms.",
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "scripting"
+  ],
+  "icons": {
+    "16": "tm16px.png",
+    "48": "tm48px.png",
+    "128": "tm128px.png"
+  },
+  "host_permissions": [
+    "https://www.screener.in/*",
+    "https://in.tradingview.com/*",
+    "https://www.tradingview.com/*",
+    "https://kite.zerodha.com/*",
+    "https://query1.finance.yahoo.com/*",
+    "https://symbol-search.tradingview.com/*",
+    "https://cedegzffqtargiahclbg.supabase.co/*",
+    "https://api.upstox.com/*",
+    "https://tradingjournalwithtanmoy.lovable.app/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "commands": {
+    "add-stock-shortcut": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Add current chart stock to Watchlist"
+    }
+  },
+  "action": {
+    "default_title": "Toggle TM Watchlist Sidebar"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.screener.in/*",
+        "https://in.tradingview.com/*",
+        "https://www.tradingview.com/*",
+        "https://kite.zerodha.com/*"
+      ],
+      "js": [
+        "src/bundle.js"
+      ],
+      "css": [
+        "assets/style.css"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/style.css",
+        "src/*.js",
+        "src/components/*.js",
+        "src/services/*",
+        "tm48px.png"
+      ],
+      "matches": [
+        "https://www.screener.in/*",
+        "https://in.tradingview.com/*",
+        "https://www.tradingview.com/*",
+        "https://kite.zerodha.com/*"
+      ]
+    }
+  ]
+}
