@@ -8,6 +8,7 @@ import { SidebarInstance } from './sidebar.js';
 import { Injector } from './injector.js';
 import { Logger } from './logger.js';
 import { TVToolbar } from './tv-toolbar.js';
+import { startAutoSync } from './journal-sync.js';
 
 const INIT_KEY = '__tmWatchlistInitialized';
 
@@ -38,6 +39,9 @@ if (globalThis[INIT_KEY]) {
       // Native-looking toolbar button inside TradingView's own right toolbar
       TVToolbar.init();
     }
+
+    // Push watchlists to an open journal tab every ~8s (no tab focus/reload).
+    startAutoSync();
 
     Logger.info('TM Watchlist: Ready');
   })();

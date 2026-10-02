@@ -170,6 +170,106 @@ function waitForTabLoad(tabId, timeoutMs = 20000) {
     });
 }
 
+
+const JOURNAL_HOSTS = [
+  'https://tradingjournalwithtanmoy.vercel.app/*',
+  'https://tradingjournalwithtanmoy.lovable.app/*',
+];
+const WL_KEY = 'tj_watchlists';
+const WL_SET_KEY = 'tj_wl_settings';
+const DEFAULT_WL_SETTINGS = {
+  defaultList: '', defaultFlag: '', sort: 'manual',
+  showTradingView: true, showScreener: true
+};
+
+function buildWatchlistPayload(state) {
+  if (!state || !Array.isArray(state.watchlists)) {
+    return { lists: [] };
+  }
+  return {
+    lists: state.watchlists
+      .filter(wl => !wl.isVirtual)
+      .map(wl => ({
+        name: wl.name,
+        items: (wl.sections || []).flatMap(sec =>
+          (sec.symbols || []).map(s => ({
+            ticker: s.ticker,
+            exchange: s.exchange,
+            color: s.color || 'none',
+            note: s.note || ''
+          }))
+        )
+      }))
+  };
+}
+
+/** Write watchlists into an open journal tab without focusing or reloading. */
+async function softSyncToOpenJournal() {
+  const { etData_v3: state } = await chrome.storage.local.get(['etData_v3']);
+  if (!state) return { skipped: true, reason: 'no-data' };
+
+  const payload = buildWatchlistPayload(state);
+  const settings = { ...DEFAULT_WL_SETTINGS };
+
+  const tabs = await chrome.tabs.query({ url: JOURNAL_HOSTS });
+  if (!tabs.length) return { skipped: true, reason: 'no-journal-tab' };
+
+  let written = 0;
+  for (const tab of tabs) {
+    if (!tab.id) continue;
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        args: [WL_KEY, WL_SET_KEY, payload, settings],
+        func: (wlKey, wlSetKey, wlPayload, wlSettings) => {
+          localStorage.setItem(wlKey, JSON.stringify(wlPayload));
+          localStorage.setItem(wlSetKey, JSON.stringify(wlSettings));
+          // Notify dashboard iframe / page to refresh watchlist view
+          try {
+            window.postMessage({ __tj: 1, type: 'tj-wl-refresh' }, '*');
+            document.querySelectorAll('iframe').forEach(f => {
+              try { f.contentWindow && f.contentWindow.postMessage({ __tj: 1, type: 'tj-wl-refresh' }, '*'); } catch (e) {}
+            });
+          } catch (e) {}
+          return true;
+        }
+      });
+      written++;
+    } catch (e) {
+      // Tab may be chrome:// or restricted
+      console.warn('[TM] soft sync tab failed', tab.id, e.message);
+    }
+  }
+
+  if (written) {
+    await chrome.storage.local.set({
+      lastJournalSync: {
+        at: Date.now(),
+        lists: payload.lists.length,
+        items: payload.lists.reduce((n, l) => n + l.items.length, 0),
+        url: tabs[0].url || '',
+        auto: true
+      }
+    });
+  }
+  return { written, lists: payload.lists.length };
+}
+
+let _softSyncTimer = null;
+function scheduleSoftSync(delayMs = 1500) {
+  if (_softSyncTimer) clearTimeout(_softSyncTimer);
+  _softSyncTimer = setTimeout(() => {
+    softSyncToOpenJournal().catch(e => console.warn('[TM] soft sync', e));
+  }, delayMs);
+}
+
+// When watchlists change in storage, push to an open journal tab (debounced).
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes.etData_v3) return;
+  scheduleSoftSync(2000);
+});
+
+
 async function handleJournalRequest(request) {
     if (request.action === 'JOURNAL_OPEN') {
         return { tabId: await openJournalTab(request.url) };
@@ -210,6 +310,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // allowed, and the injected function is a fixed localStorage write.
     if (request.action === 'JOURNAL_OPEN' || request.action === 'JOURNAL_SYNC') {
         handleJournalRequest(request)
+            .then(sendResponse)
+            .catch(e => sendResponse({ error: e.message || String(e) }));
+        return true;
+    }
+
+    if (request.action === 'JOURNAL_AUTO_SYNC') {
+        softSyncToOpenJournal()
             .then(sendResponse)
             .catch(e => sendResponse({ error: e.message || String(e) }));
         return true;

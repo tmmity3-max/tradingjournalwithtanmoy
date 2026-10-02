@@ -52,7 +52,7 @@ export const SettingsComponent = {
             <div style="font-size:11px; color:#888; margin-bottom:10px; line-height:1.4;">
               1. Log in to the Trading Journal website with Google.<br>
               2. Open <b>Settings</b> (bottom of left sidebar) → generate a linking code.<br>
-              3. Paste the code below once. The extension stays linked until you revoke the code on the website (max 3 codes).
+              3. Paste the code below once, then Connect &amp; Sync once with the journal open. After that, watchlists auto-sync every ~8 seconds while a journal tab is open.
             </div>
             <div style="display:flex; gap:5px; margin-bottom:6px;">
               <input type="text" id="txt-link-code" placeholder="XXXX-XXXX linking code" value="${Store.state.settings.linkCode || ''}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px; letter-spacing:1px; text-transform:uppercase;">

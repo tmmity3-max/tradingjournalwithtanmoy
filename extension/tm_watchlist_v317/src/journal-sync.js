@@ -146,3 +146,21 @@ export const JournalSync = {
     return hrs === 1 ? '1 hour ago' : `${hrs} hours ago`;
   }
 };
+
+
+/** Auto-push watchlists to an open journal tab every 8 seconds. */
+let _autoSyncStarted = false;
+export function startAutoSync() {
+  if (_autoSyncStarted) return;
+  _autoSyncStarted = true;
+  const tick = () => {
+    try {
+      chrome.runtime.sendMessage({ action: 'JOURNAL_AUTO_SYNC' }, () => {
+        void chrome.runtime.lastError; // ignore if SW waking
+      });
+    } catch (e) {}
+  };
+  // First run after a short delay, then every 8s
+  setTimeout(tick, 3000);
+  setInterval(tick, 8000);
+}
