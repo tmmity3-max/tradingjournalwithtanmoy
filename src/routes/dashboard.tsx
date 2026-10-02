@@ -292,7 +292,7 @@ function JournalPage() {
         }
         if (d.type === "tj-chart-url" && d.path) {
           const url = await chartObjectUrl(user.uid, d.path);
-          return reply(event.source, { rid: d.rid, path });
+          return reply(event.source, { rid: d.rid, url });
         }
         if (d.type === "tj-chart-delete" && d.path) {
           await deleteChart(user.uid, d.path);
