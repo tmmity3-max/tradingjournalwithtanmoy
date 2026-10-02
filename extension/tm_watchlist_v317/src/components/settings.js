@@ -51,7 +51,7 @@ export const SettingsComponent = {
             <h4>Trading Journal Sync</h4>
             <div style="font-size:11px; color:#888; margin-bottom:10px; line-height:1.4;">
               1. Log in to the Trading Journal website with Google.<br>
-              2. Open <b>Settings</b> (gear icon top-right) → generate a linking code.<br>
+              2. Open <b>Settings</b> (bottom of left sidebar) → generate a linking code.<br>
               3. Paste the code below once. The extension stays linked until you revoke the code on the website (max 3 codes).
             </div>
             <div style="display:flex; gap:5px; margin-bottom:6px;">
@@ -74,11 +74,6 @@ export const SettingsComponent = {
             <h4>Data Management</h4>
             <div style="display:flex; gap:5px; margin-bottom:10px;">
                 <button class="btn-primary" id="btn-export-all" style="flex:1" title="Backup all data as CSV">Backup All</button>
-            </div>
-            <div style="margin-top:15px">
-                <label>Import (NSE:TCS, BSE:INFY - Comma or Newline)</label>
-                <textarea id="import-text" placeholder="RELIANCE, NSE\nTCS, NSE"></textarea>
-                <button class="btn-primary" style="margin-top:5px" id="btn-import">Import</button>
             </div>
             <hr style="border:0; border-top:1px solid var(--et-border, #e0e0e0); margin-top:15px;">
             <h4>Watchlist Actions</h4>
@@ -200,17 +195,6 @@ export const SettingsComponent = {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
-
-    div.querySelector('#btn-import').onclick = () => {
-      const txt = div.querySelector('#import-text').value;
-      if (txt) {
-        const count = Store.importCSV(txt);
-        alert(`Imported ${count} symbols to active watchlist.`);
-        sidebarInstance.currentView = 'list';
-        sidebarInstance.renderContent();
-      }
-    };
-    isolateFromPageHotkeys(div.querySelector('#import-text'));
 
     div.querySelector('#btn-clear-all').onclick = () => {
       const wl = Store.activeWatchlist;
