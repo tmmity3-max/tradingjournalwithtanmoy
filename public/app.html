@@ -4730,6 +4730,8 @@ function generateLinkCode(){
   codes.push({ code, createdAt: Date.now(), label: 'Device ' + (codes.length+1) });
   writeLinkCodes(codes);
   renderLinkCodes();
+  // Register the code in Firestore so the extension can push without the website open
+  try{ window.parent.postMessage({ __tj: 1, type: 'tj-link-code-register', code }, '*'); }catch(e){}
   // Copy to clipboard for convenience
   try{ navigator.clipboard.writeText(code); }catch(e){}
 }
@@ -4737,6 +4739,7 @@ function revokeLinkCode(code){
   if(!confirm('Revoke code ' + code + '? The extension using this code will stop syncing until a new code is pasted.')) return;
   writeLinkCodes(readLinkCodes().filter(c => c.code !== code));
   renderLinkCodes();
+  try{ window.parent.postMessage({ __tj: 1, type: 'tj-link-code-revoke', code }, '*'); }catch(e){}
 }
 function renderLinkCodes(){
   const list = document.getElementById('link-codes-list');
