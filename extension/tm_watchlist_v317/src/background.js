@@ -129,9 +129,93 @@ chrome.action.onClicked.addListener(async (tab) => {
     ensureSidebarToggle(tab);
 });
 
+// ── Trading Journal sync helpers ─────────────────────────────────────────
+// Only a plain http(s) journal URL is accepted, and the injected payload is
+// a fixed two-key localStorage write. Nothing here can be steered at an
+// arbitrary origin or script.
+function assertJournalUrl(raw) {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+        throw new Error('Journal URL must be http(s).');
+    }
+    return url.toString().replace(/\/$/, '');
+}
+
+async function openJournalTab(rawUrl) {
+    const url = assertJournalUrl(rawUrl);
+
+    const existing = await chrome.tabs.query({ url: `${url}/*` });
+    if (existing && existing.length) {
+        await chrome.tabs.update(existing[0].id, { active: true });
+        await chrome.windows.update(existing[0].windowId, { focused: true });
+        return existing[0].id;
+    }
+    const tab = await chrome.tabs.create({ url, active: true });
+    return tab.id;
+}
+
+function waitForTabLoad(tabId, timeoutMs = 20000) {
+    return new Promise(resolve => {
+        const done = () => {
+            clearTimeout(timer);
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
+        };
+        const listener = (id, info) => {
+            if (id === tabId && info.status === 'complete') done();
+        };
+        chrome.tabs.onUpdated.addListener(listener);
+        chrome.tabs.get(tabId, t => (t && t.status === 'complete' ? done() : null));
+        const timer = setTimeout(done, timeoutMs);
+    });
+}
+
+async function handleJournalRequest(request) {
+    if (request.action === 'JOURNAL_OPEN') {
+        return { tabId: await openJournalTab(request.url) };
+    }
+
+    // JOURNAL_SYNC
+    const tabId = await openJournalTab(request.url);
+    await waitForTabLoad(tabId);
+
+    const [injected] = await chrome.scripting.executeScript({
+        target: { tabId },
+        args: [request.wlKey, request.wlSetKey, request.payload, request.settings],
+        func: (wlKey, wlSetKey, wlPayload, wlSettings) => {
+            localStorage.setItem(wlKey, JSON.stringify(wlPayload));
+            localStorage.setItem(wlSetKey, JSON.stringify(wlSettings));
+            return {
+                lists: wlPayload.lists.length,
+                items: wlPayload.lists.reduce((n, l) => n + l.items.length, 0)
+            };
+        }
+    });
+
+    const result = injected && injected.result;
+    if (!result) throw new Error('Could not write to the page. Is the journal open and not blocked?');
+
+    // Reload so the Watchlist tab renders the new data immediately, then wait
+    // for it to settle so the caller can report a definite result.
+    await chrome.tabs.reload(tabId);
+    await waitForTabLoad(tabId);
+
+    return result;
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'FETCH_PAGE') {
-        fetch(request.url)
+    // ── Trading Journal sync ──────────────────────────────────────────────
+    // The content script has no chrome.tabs / chrome.scripting access, so
+    // the sidebar relays these through here. Only the journal domain is
+    // allowed, and the injected function is a fixed localStorage write.
+    if (request.action === 'JOURNAL_OPEN' || request.action === 'JOURNAL_SYNC') {
+        handleJournalRequest(request)
+            .then(sendResponse)
+            .catch(e => sendResponse({ error: e.message || String(e) }));
+        return true;
+    }
+
+    if (request.action === 'FETCH_PAGE') {        fetch(request.url)
             .then(async response => {
                 const text = await response.text();
                 if (!response.ok) {
