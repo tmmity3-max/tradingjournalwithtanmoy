@@ -15,7 +15,7 @@ const WITH = [
   "Add once, see it on Screener, TradingView & Kite",
   "One-click chart jumps from any platform",
   "Colour flags & notes to track your conviction",
-  "Your journal and watchlist stay in sync, both ways",
+  "Manage lists in the extension, review them on every device",
 ];
 const FEATURES = [
   { icon: "🔎", title: "Screener Bulk Scanner", text: "Scan every result page of a Screener.in query and import all the symbols in one click." },
@@ -202,8 +202,8 @@ function LandingPage() {
             <div>
               <h2 className="text-2xl font-extrabold">All in one place</h2>
               <p className="mt-2 max-w-xl text-sm text-blue-100">
-                Log trades, track capital and keep your extension watchlists together. Connect the extension to your account and your
-                watchlists stay in sync both ways between the extension and the Watchlist tab, on every device.
+                Log trades, track capital and review your extension watchlists together. Connect the extension to your account, manage
+                your lists there, and they appear in the Watchlist section of the website on every device.
               </p>
             </div>
             <button
