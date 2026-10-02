@@ -1,4 +1,5 @@
 import { SupabaseService } from './services/supabase.js';
+import { pushDirect, clearUidCache } from './services/firestore-sync.js';
 
 const ACTION_TITLE = "Toggle TM Watchlist Sidebar";
 const SUPPORTED_HOSTS = ["screener.in", "tradingview.com", "kite.zerodha.com"];
@@ -255,19 +256,52 @@ async function softSyncToOpenJournal() {
   return { written, lists: payload.lists.length };
 }
 
+/** Direct Firestore push — works even when no journal tab is open. */
+async function directSyncToFirestore() {
+  const { etData_v3: state } = await chrome.storage.local.get(['etData_v3']);
+  if (!state) return { skipped: true, reason: 'no-data' };
+  const linkCode = state?.settings?.linkCode || '';
+  if (!linkCode) return { skipped: true, reason: 'no-code' };
+  return pushDirect(state, linkCode);
+}
+
 let _softSyncTimer = null;
 function scheduleSoftSync(delayMs = 1500) {
   if (_softSyncTimer) clearTimeout(_softSyncTimer);
   _softSyncTimer = setTimeout(() => {
-    softSyncToOpenJournal().catch(e => console.warn('[TM] soft sync', e));
+    // Prefer direct Firestore when a linking code is set; fall back to tab injection
+    directSyncToFirestore()
+      .then((r) => {
+        if (r && (r.skipped || r.ok === false)) {
+          softSyncToOpenJournal().catch((e) => console.warn('[TM] soft sync', e));
+        }
+      })
+      .catch((e) => {
+        console.warn('[TM] direct sync', e);
+        softSyncToOpenJournal().catch((e2) => console.warn('[TM] soft sync', e2));
+      });
   }, delayMs);
 }
 
-// When watchlists change in storage, push to an open journal tab (debounced).
+// When watchlists change in storage, push (debounced).
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.etData_v3) return;
+  // If the linking code changed, clear the uid cache
+  const oldCode = changes.etData_v3.oldValue?.settings?.linkCode;
+  const newCode = changes.etData_v3.newValue?.settings?.linkCode;
+  if (oldCode !== newCode) clearUidCache();
   scheduleSoftSync(2000);
 });
+
+// Periodic direct sync every 8 seconds (works with website closed)
+setInterval(() => {
+  directSyncToFirestore().catch((e) => console.warn('[TM] periodic direct sync', e));
+}, 8000);
+
+// Also run shortly after the service worker wakes
+setTimeout(() => {
+  directSyncToFirestore().catch(() => {});
+}, 4000);
 
 
 async function handleJournalRequest(request) {
@@ -275,7 +309,16 @@ async function handleJournalRequest(request) {
         return { tabId: await openJournalTab(request.url) };
     }
 
-    // JOURNAL_SYNC
+    // JOURNAL_SYNC — also try direct first, then tab injection
+    const { etData_v3: state } = await chrome.storage.local.get(['etData_v3']);
+    const linkCode = state?.settings?.linkCode || '';
+    if (linkCode && state) {
+      const direct = await pushDirect(state, linkCode);
+      if (direct.ok) {
+        return { lists: direct.lists, items: direct.items, direct: true };
+      }
+    }
+
     const tabId = await openJournalTab(request.url);
     await waitForTabLoad(tabId);
 
@@ -316,9 +359,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === 'JOURNAL_AUTO_SYNC') {
-        softSyncToOpenJournal()
-            .then(sendResponse)
-            .catch(e => sendResponse({ error: e.message || String(e) }));
+        directSyncToFirestore()
+          .then((r) => {
+            if (r && r.ok) return sendResponse(r);
+            return softSyncToOpenJournal().then(sendResponse);
+          })
+          .catch(e => sendResponse({ error: e.message || String(e) }));
         return true;
     }
 
