@@ -1019,7 +1019,10 @@ const JournalSync = {
   WL_SET_KEY,
 
   url() {
-    return Store.state.settings.journalUrl || DEFAULT_JOURNAL_URL;
+    let base = (Store.state.settings.journalUrl || DEFAULT_JOURNAL_URL).replace(/\/+$/, '');
+    // Always open the dashboard so auth + sync layer are active.
+    if (!/\/dashboard\/?$/.test(base)) base = base + '/dashboard';
+    return base;
   },
 
   setUrl(url) {

@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
-// TM Watchlist v3.18.3 — includes linking-code field for journal sync.
-const EXTENSION_FILE = "/tm-watchlist-v3.18.3.zip";
-const EXTENSION_NAME = "TM Watchlist v3.18.3";
+// TM Watchlist v3.18.4 — includes linking-code field for journal sync.
+const EXTENSION_FILE = "/tm-watchlist-v3.18.4.zip";
+const EXTENSION_NAME = "TM Watchlist v3.18.4";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",

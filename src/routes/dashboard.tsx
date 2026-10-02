@@ -81,7 +81,9 @@ function JournalPage() {
       writeLocal(merged);
       if (canonical(merged) !== canonical(remote)) {
         try {
+          lastPushAt.current = Date.now();
           await pushRemote(user.uid, merged, Object.keys(remote).length ? remote : null);
+          lastPushAt.current = Date.now();
         } catch (e) {
           console.error(e);
         }
@@ -126,6 +128,13 @@ function JournalPage() {
         // Our own writes are echoed locally first; only react to real server data.
         if (qs.metadata.hasPendingWrites || qs.empty) return;
         const incoming = toSnapshot(qs);
+        // Never drop extension watchlists that exist locally but not yet on the server
+        // (race: Connect & Sync writes localStorage, then this snapshot fires with old remote).
+        const localNow = readLocal();
+        const WATCHLIST_KEYS = ["tj_watchlists", "tj_wl_settings"] as const;
+        for (const k of WATCHLIST_KEYS) {
+          if (localNow[k] && !incoming[k]) incoming[k] = localNow[k];
+        }
         const json = canonical(incoming);
         if (json === lastJson.current) {
           lastSnap.current = incoming;
@@ -151,11 +160,16 @@ function JournalPage() {
         for (const k of new Set([...Object.keys(before), ...Object.keys(incoming)])) {
           if (before[k] !== incoming[k]) changedKeys.add(k);
         }
-        const WATCHLIST_KEYS = new Set(["tj_watchlists", "tj_wl_settings"]);
-        const onlyWatchlist = changedKeys.size > 0 && [...changedKeys].every((k) => WATCHLIST_KEYS.has(k));
+        const onlyWatchlist =
+          changedKeys.size > 0 &&
+          [...changedKeys].every((k) => (WATCHLIST_KEYS as readonly string[]).includes(k));
         lastJson.current = json;
         lastSnap.current = incoming;
         writeLocal(incoming);
+        // If we preserved local-only watchlists, push them up.
+        if (WATCHLIST_KEYS.some((k) => localNow[k] && !toSnapshot(qs)[k])) {
+          schedulePush();
+        }
         if (onlyWatchlist && iframeRef.current?.contentWindow) {
           iframeRef.current.contentWindow.postMessage({ __tj: 1, type: "tj-wl-refresh" }, "*");
         } else if (iframeRef.current) {
