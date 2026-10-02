@@ -232,12 +232,14 @@ function LandingPage() {
                 your lists there, and they appear in the Watchlist section of the website on every device.
               </p>
               <p className="mt-3 max-w-xl text-sm text-blue-100">
-                To connect: log in here, open Settings (gear icon top-right) and generate a linking code.
-                In the extension go to{" "}
-                <span className="font-semibold text-white">Settings → Trading Journal Sync</span>, paste the code,
-                then press{" "}
-                <span className="font-semibold text-white">Connect &amp; Sync</span>. Max 3 codes per account;
-                the link lasts until you revoke the code.
+                <span className="font-semibold text-white">How to link the extension:</span>
+                <br />1. Log in to this website with Google.
+                <br />2. Open <span className="font-semibold text-white">Settings</span> (bottom of the left sidebar) → generate a linking code (max 3).
+                <br />3. In the TM Watchlist extension go to{" "}
+                <span className="font-semibold text-white">Settings → Trading Journal Sync</span>, paste the code and press{" "}
+                <span className="font-semibold text-white">Link</span>.
+                <br />4. Press{" "}
+                <span className="font-semibold text-white">Connect &amp; Sync</span>. The link stays until you revoke the code.
               </p>
             </div>
             <button
