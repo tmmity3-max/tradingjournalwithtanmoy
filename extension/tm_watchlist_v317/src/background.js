@@ -12,7 +12,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 // Set Uninstall URL — points at the user's own journal, so uninstalling
 // lands somewhere that belongs to the same product.
-const JOURNAL_URL = "https://tradingjournalwithtanmoy.lovable.app";
+const JOURNAL_URL = "https://tradingjournalwithtanmoy.vercel.app";
 chrome.storage.sync.get(['etAnonUserId'], (syncRes) => {
     if (syncRes.etAnonUserId) {
         chrome.runtime.setUninstallURL(`${JOURNAL_URL}/?event=uninstall`);

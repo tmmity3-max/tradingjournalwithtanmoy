@@ -17,7 +17,7 @@ import { Logger } from './logger.js';
  * through a script injected into the journal tab itself.
  */
 
-const DEFAULT_JOURNAL_URL = 'https://tradingjournalwithtanmoy.lovable.app';
+const DEFAULT_JOURNAL_URL = 'https://tradingjournalwithtanmoy.vercel.app';
 const WL_KEY = 'tj_watchlists';
 const WL_SET_KEY = 'tj_wl_settings';
 

@@ -396,7 +396,7 @@ const Store = {
       isCompact: false,
       upstoxAccessToken: '',
       showLiveBadges: true,
-      journalUrl: 'https://tradingjournalwithtanmoy.lovable.app',
+      journalUrl: 'https://tradingjournalwithtanmoy.vercel.app',
       linkCode: ''
     }
   },
@@ -451,8 +451,9 @@ const Store = {
         if (typeof this.state.settings.showLiveBadges === 'undefined') {
           this.state.settings.showLiveBadges = true;
         }
-        if (typeof this.state.settings.journalUrl === 'undefined' || !this.state.settings.journalUrl) {
-          this.state.settings.journalUrl = 'https://tradingjournalwithtanmoy.lovable.app';
+        if (typeof this.state.settings.journalUrl === 'undefined' || !this.state.settings.journalUrl
+            || this.state.settings.journalUrl.includes('lovable.app')) {
+          this.state.settings.journalUrl = 'https://tradingjournalwithtanmoy.vercel.app';
         }
         if (typeof this.state.settings.linkCode === 'undefined') {
           this.state.settings.linkCode = '';
@@ -1000,7 +1001,7 @@ const Scanner = {
  * through a script injected into the journal tab itself.
  */
 
-const DEFAULT_JOURNAL_URL = 'https://tradingjournalwithtanmoy.lovable.app';
+const DEFAULT_JOURNAL_URL = 'https://tradingjournalwithtanmoy.vercel.app';
 const WL_KEY = 'tj_watchlists';
 const WL_SET_KEY = 'tj_wl_settings';
 
