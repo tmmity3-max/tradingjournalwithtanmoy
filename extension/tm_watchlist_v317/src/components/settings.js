@@ -34,7 +34,7 @@ export const SettingsComponent = {
             <hr style="border:0; border-top:1px solid var(--et-border, #e0e0e0);">
             <h4>Market Data (Upstox)</h4>
             <div style="margin-bottom:15px">
-                <label><input type="checkbox" id="chk-live-badges" ${Store.state.settings.showLiveBadges ? 'checked' : ''}> Show prev-day-high arrow &amp; relative volume badges</label>
+                <label><input type="checkbox" id="chk-live-badges" ${Store.state.settings.showLiveBadges ? 'checked' : ''}> Show prev-day-high arrow & relative volume badges</label>
                 <div style="margin-top:8px; display:flex; gap:5px;">
                   <input type="password" id="txt-upstox-token" placeholder="Upstox Access Token" value="${Store.state.settings.upstoxAccessToken || ''}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px;">
                   <button class="btn-primary" id="btn-save-upstox-token">Save</button>
@@ -51,19 +51,20 @@ export const SettingsComponent = {
             <h4>Trading Journal Sync</h4>
             <div style="font-size:11px; color:#888; margin-bottom:10px; line-height:1.4;">
               1. Log in to the Trading Journal website with Google.<br>
-              2. Open <b>Settings</b> (bottom of left sidebar) → generate a linking code.<br>
-              3. Paste the code below once, then Connect &amp; Sync once with the journal open. After that, watchlists auto-sync every ~8 seconds while a journal tab is open.
+              2. Open <b>Settings</b> → <b>Extension Linking Codes</b> → generate a code.<br>
+              3. Paste the code below and press <b>Link</b>.<br>
+              4. Press <b>Connect & Sync</b> once. After that, watchlists auto-push to the cloud every ~8 seconds — <b>even when the website is closed</b>.
             </div>
             <div style="display:flex; gap:5px; margin-bottom:6px;">
               <input type="text" id="txt-link-code" placeholder="XXXX-XXXX linking code" value="${Store.state.settings.linkCode || ''}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px; letter-spacing:1px; text-transform:uppercase;">
               <button class="btn-primary" id="btn-save-link-code">Link</button>
             </div>
             <div style="display:flex; gap:5px; align-items:center;">
-              <button class="btn-primary" id="btn-connect-journal" style="flex:1;">Connect &amp; Sync</button>
+              <button class="btn-primary" id="btn-connect-journal" style="flex:1;">Connect & Sync</button>
               <button class="icon-btn" id="btn-open-journal" style="border:1px solid var(--et-border,#e0e0e0); padding:4px 8px; font-size:11px;">Open Site</button>
             </div>
             <div style="font-size:11px; color:#888; margin-top:6px; line-height:1.4;" id="journal-status">
-              ${Store.state.settings.linkCode ? 'Linked with code ' + Store.state.settings.linkCode + '. ' : 'Not linked yet. '}
+              ${Store.state.settings.linkCode ? 'Linked with code ' + Store.state.settings.linkCode + '. Direct cloud sync active. ' : 'Not linked yet. '}
               ${JournalSync.symbolCount()} symbol(s) across ${Store.state.watchlists.filter(w => !w.isVirtual).length} list(s) ready to sync.
             </div>
             <hr style="border:0; border-top:1px solid var(--et-border, #e0e0e0); margin-top:15px;">
@@ -128,7 +129,7 @@ export const SettingsComponent = {
       }
       Store.state.settings.linkCode = code;
       Store.save();
-      setJournalStatus('Linked with code ' + code + '. You only need to do this once.', '#4caf50');
+      setJournalStatus('Linked with code ' + code + '. Direct cloud sync is now active (no website tab needed).', '#4caf50');
       Logger.info(`[Settings] Link code saved: ${code}`);
     };
 
@@ -145,11 +146,11 @@ export const SettingsComponent = {
     btnConnect.onclick = async () => {
       btnConnect.disabled = true;
       btnConnect.textContent = 'Syncing…';
-      setJournalStatus('Opening the journal and writing your lists…');
+      setJournalStatus('Pushing your lists to the cloud…');
       try {
         const { lists, items } = await JournalSync.connect();
         setJournalStatus(
-          `Synced ${items} symbol(s) across ${lists} list(s) to the journal. Last sync ${JournalSync.humanSince(Date.now())}.`,
+          `Synced ${items} symbol(s) across ${lists} list(s). Direct sync continues every ~8s even with the site closed.`,
           '#4caf50'
         );
       } catch (e) {
