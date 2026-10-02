@@ -65,17 +65,29 @@ function JournalPage() {
       if (cancelled) return;
       setEmail(user.email ?? null);
 
-      const remote = await pullRemote(user.uid);
+      // Merge cloud + local so extension-written keys (tj_watchlists, etc.)
+      // are not wiped when remote has other journal data but no watchlists yet.
+      const remote = (await pullRemote(user.uid)) ?? {};
       const local = readLocal();
-      if (remote && Object.keys(remote).length > 0) {
-        writeLocal(remote);
-        lastJson.current = canonical(remote);
-        lastSnap.current = remote;
-      } else {
-        await pushRemote(user.uid, local, null);
-        lastJson.current = canonical(local);
-        lastSnap.current = local;
+      const merged: Record<string, string> = { ...remote };
+      for (const [k, v] of Object.entries(local)) {
+        if (!(k in remote)) merged[k] = v;
       }
+      // Watchlist keys: prefer non-empty local over empty/missing remote
+      // (Connect & Sync writes these into localStorage right before reload).
+      for (const k of ["tj_watchlists", "tj_wl_settings"]) {
+        if (local[k] && local[k] !== remote[k]) merged[k] = local[k];
+      }
+      writeLocal(merged);
+      if (canonical(merged) !== canonical(remote)) {
+        try {
+          await pushRemote(user.uid, merged, Object.keys(remote).length ? remote : null);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      lastJson.current = canonical(merged);
+      lastSnap.current = merged;
       if (cancelled) return;
       setReady(true);
 
