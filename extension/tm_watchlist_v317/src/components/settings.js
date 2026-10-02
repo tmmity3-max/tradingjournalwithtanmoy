@@ -58,10 +58,6 @@ export const SettingsComponent = {
               <input type="text" id="txt-link-code" placeholder="XXXX-XXXX linking code" value="${Store.state.settings.linkCode || ''}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px; letter-spacing:1px; text-transform:uppercase;">
               <button class="btn-primary" id="btn-save-link-code">Link</button>
             </div>
-            <div style="display:flex; gap:5px; margin-bottom:6px;">
-              <input type="text" id="txt-journal-url" placeholder="Journal URL" value="${Store.state.settings.journalUrl || JournalSync.DEFAULT_JOURNAL_URL}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px;">
-              <button class="btn-primary" id="btn-save-journal-url">Save</button>
-            </div>
             <div style="display:flex; gap:5px; align-items:center;">
               <button class="btn-primary" id="btn-connect-journal" style="flex:1;">Connect &amp; Sync</button>
               <button class="icon-btn" id="btn-open-journal" style="border:1px solid var(--et-border,#e0e0e0); padding:4px 8px; font-size:11px;">Open Site</button>
@@ -121,7 +117,6 @@ export const SettingsComponent = {
       journalStatus.style.color = color;
     };
 
-    isolateFromPageHotkeys(div.querySelector('#txt-journal-url'));
 
     isolateFromPageHotkeys(div.querySelector('#txt-link-code'));
     div.querySelector('#btn-save-link-code').onclick = () => {
@@ -135,11 +130,6 @@ export const SettingsComponent = {
       Store.save();
       setJournalStatus('Linked with code ' + code + '. You only need to do this once.', '#4caf50');
       Logger.info(`[Settings] Link code saved: ${code}`);
-    };
-    div.querySelector('#btn-save-journal-url').onclick = () => {
-      const saved = JournalSync.setUrl(div.querySelector('#txt-journal-url').value);
-      setJournalStatus('Journal URL saved.', '#4caf50');
-      Logger.info(`[Settings] Journal URL set to ${saved}`);
     };
 
     div.querySelector('#btn-open-journal').onclick = async () => {
