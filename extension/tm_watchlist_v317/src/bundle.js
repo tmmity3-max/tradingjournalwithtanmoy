@@ -1053,41 +1053,36 @@ const JournalSync = {
       .reduce((n, wl) => n + wl.sections.reduce((m, s) => m + s.symbols.length, 0), 0);
   },
 
+  /**
+   * Ask the background service worker to run a task.
+   *
+   * Content scripts only get a slice of the Chrome API (runtime, storage,
+   * i18n) — `chrome.tabs` and `chrome.scripting` are undefined here, so
+   * every tab operation has to be relayed to the worker.
+   */
+  send(action, extra = {}) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action, ...extra }, (response) => {
+        const err = chrome.runtime.lastError;
+        if (err) return reject(new Error(err.message));
+        if (!response) return reject(new Error('No response from the extension service worker.'));
+        if (response.error) return reject(new Error(response.error));
+        resolve(response);
+      });
+    });
+  },
+
   /** Open the journal site, focusing the existing tab if one is already open. */
   async openJournal() {
     const url = this.url();
     if (!url) throw new Error('No journal URL configured.');
-
-    const existing = await chrome.tabs.query({ url: `${url}/*` });
-    if (existing && existing.length) {
-      await chrome.tabs.update(existing[0].id, { active: true });
-      await chrome.windows.update(existing[0].windowId, { focused: true });
-      return existing[0].id;
-    }
-    const tab = await chrome.tabs.create({ url, active: true });
-    return tab.id;
-  },
-
-  /** Resolve once the tab has finished loading, so localStorage writes aren't wiped by a late load. */
-  waitForLoad(tabId, timeoutMs = 15000) {
-    return new Promise(resolve => {
-      const done = () => {
-        clearTimeout(timer);
-        chrome.tabs.onUpdated.removeListener(listener);
-        resolve();
-      };
-      const listener = (id, info) => {
-        if (id === tabId && info.status === 'complete') done();
-      };
-      chrome.tabs.onUpdated.addListener(listener);
-      chrome.tabs.get(tabId, t => (t && t.status === 'complete' ? done() : null));
-      const timer = setTimeout(done, timeoutMs);
-    });
+    const { tabId } = await this.send('JOURNAL_OPEN', { url });
+    return tabId;
   },
 
   /**
    * Write the current watchlists into the journal page's localStorage.
-   * Returns a short status string for the UI.
+   * The worker owns the tab, the load wait and the script injection.
    */
   async connect() {
     const url = this.url();
@@ -1096,31 +1091,15 @@ const JournalSync = {
     const payload = this.toPayload();
     const settings = { ...DEFAULT_WL_SETTINGS };
 
-    const tabId = await this.openJournal();
-    await this.waitForLoad(tabId);
-
-    const [injected] = await chrome.scripting.executeScript({
-      target: { tabId },
-      args: [WL_KEY, WL_SET_KEY, payload, settings],
-      func: (wlKey, wlSetKey, wlPayload, wlSettings) => {
-        // The site's own sync layer picks these up within its next poll.
-        localStorage.setItem(wlKey, JSON.stringify(wlPayload));
-        localStorage.setItem(wlSetKey, JSON.stringify(wlSettings));
-        return {
-          lists: wlPayload.lists.length,
-          items: wlPayload.lists.reduce((n, l) => n + l.items.length, 0)
-        };
-      }
+    const result = await this.send('JOURNAL_SYNC', {
+      url,
+      wlKey: WL_KEY,
+      wlSetKey: WL_SET_KEY,
+      payload,
+      settings
     });
 
-    if (!injected || injected.result === undefined) {
-      throw new Error('Could not write to the page. Is the journal open and not blocked?');
-    }
-
-    // Reload so the Watchlist tab renders the new data immediately.
-    await chrome.tabs.reload(tabId);
-
-    const { lists, items } = injected.result;
+    const { lists, items } = result;
     Logger.info(`[JournalSync] Synced ${lists} list(s), ${items} symbol(s) to ${url}`);
 
     chrome.storage.local.set({ lastJournalSync: { at: Date.now(), lists, items, url } });
