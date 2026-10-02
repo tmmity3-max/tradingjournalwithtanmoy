@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { onSnapshot } from "firebase/firestore";
+import { deleteDoc, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { currentUser, signOutUser } from "@/lib/auth";
 import {
   canonical,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/journal-sync";
 import type { Snapshot } from "@/lib/journal-sync";
 import { fetchUpstoxCmp, getUpstoxStatus, saveUpstoxToken } from "@/lib/upstox.functions";
+import { getDb } from "@/integrations/firebase/client";
 
 
 export const Route = createFileRoute("/dashboard")({
@@ -186,7 +187,8 @@ function JournalPage() {
     };
   }, [navigate]);
 
-  // Bridge: the journal iframe asks us to store / fetch its chart screenshots.
+  // Bridge: the journal iframe asks us to store / fetch its chart screenshots,
+  // and to register/revoke extension linking codes in Firestore.
   useEffect(() => {
     const reply = (source: MessageEventSource | null, payload: Record<string, unknown>) => {
       (source as Window | null)?.postMessage({ __tj: 1, ...payload }, "*");
@@ -202,10 +204,38 @@ function JournalPage() {
             dataUrl?: string;
             path?: string;
             token?: string;
+            code?: string;
             symbols?: Array<{ symbol: string; exchange: string }>;
           }
         | null;
-      if (!d || !d.__tj || !d.rid || !d.type) return;
+      if (!d || !d.__tj || !d.type) return;
+
+      // Link-code registration (no rid required)
+      if (d.type === "tj-link-code-register" && d.code) {
+        const user = await currentUser();
+        if (!user) return;
+        try {
+          await setDoc(doc(getDb(), "linkCodes", d.code), {
+            uid: user.uid,
+            createdAt: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.error("[linkCodes] register failed", e);
+        }
+        return;
+      }
+      if (d.type === "tj-link-code-revoke" && d.code) {
+        const user = await currentUser();
+        if (!user) return;
+        try {
+          await deleteDoc(doc(getDb(), "linkCodes", d.code));
+        } catch (e) {
+          console.error("[linkCodes] revoke failed", e);
+        }
+        return;
+      }
+
+      if (!d.rid) return;
       const user = await currentUser();
       if (!user) return reply(event.source, { rid: d.rid, error: "auth" });
 
