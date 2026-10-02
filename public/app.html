@@ -586,6 +586,31 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   .exit-row{grid-template-columns:1fr}
   .dash-kpi-grid{grid-template-columns:1fr 1fr}
 }
+
+/* ── JOURNAL ⇄ WATCHLIST MODE SWITCH (top-left of the sidebar) ── */
+.mode-switch{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 14px 12px;border-bottom:1px solid var(--border)}
+.ms-lbl{font-size:.74rem;font-weight:700;color:var(--text-3);cursor:pointer;user-select:none;transition:color .2s}
+.ms-lbl.on{color:var(--text)}
+.ms-track{position:relative;width:54px;height:30px;border-radius:30px;border:2px solid var(--text-2);background:transparent;cursor:pointer;padding:0;flex-shrink:0;transition:background .2s,border-color .2s}
+.ms-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--text-2);transition:transform .2s,background .2s}
+.mode-switch[data-mode="watchlist"] .ms-track{background:var(--header-bg);border-color:transparent}
+.mode-switch[data-mode="watchlist"] .ms-knob{transform:translateX(24px);background:#fff}
+.ms-track:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:900px){.mode-switch{border-bottom:none;padding:12px 28px 4px;justify-content:flex-start}}
+
+/* ── GLOBAL SETTINGS (gear, top-right) ── */
+.topbar{position:sticky;top:0;z-index:250;display:flex;justify-content:flex-end;align-items:center;padding:10px 28px 0;pointer-events:none}
+.gear-btn{pointer-events:auto;width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:1.15rem;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;transition:transform .25s,background .2s}
+.gear-btn:hover{transform:rotate(60deg)}
+.gear-panel{position:fixed;top:58px;right:22px;width:380px;max-width:calc(100vw - 24px);max-height:calc(100vh - 78px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);z-index:400;display:none}
+.gear-panel.open{display:block}
+.gear-sec{padding:12px 20px 4px;font-size:.66rem;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px}
+.gear-steps{margin:6px 20px 0;padding-left:18px;font-size:.78rem;color:var(--text-2);line-height:1.55}
+.gear-steps b{color:var(--text)}
+.gear-code{display:flex;gap:6px;padding:10px 20px 4px}
+.gear-code input{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:.72rem;font-family:var(--font-mono);background:var(--surface-2);color:var(--text)}
+.gear-dl{display:flex;margin:10px 20px 16px;justify-content:center;text-decoration:none}
+@media(max-width:640px){.topbar{padding:8px 13px 0}}
 </style>
 </head>
 <body>
@@ -594,6 +619,11 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
 
 <!-- SIDEBAR NAV -->
 <div class="sidebar">
+  <div class="mode-switch" data-mode="journal">
+    <span class="ms-lbl on" onclick="tjSwitchMode('journal')">Journal</span>
+    <button class="ms-track" role="switch" aria-checked="false" aria-label="Switch between Trading Journal and Watchlist" onclick="tjSwitchMode(this.parentNode.dataset.mode==='journal'?'watchlist':'journal')"><span class="ms-knob"></span></button>
+    <span class="ms-lbl " onclick="tjSwitchMode('watchlist')">Watchlist</span>
+  </div>
   <div class="sidebar-brand">
     <div class="sb-icon">📈</div>
     <div><h1>Trading Journal</h1><p>NSE · BSE · MCX</p></div>
@@ -613,13 +643,53 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="tab-group-label">🛠 Tools</div>
     <div class="tab" onclick="switchTab('risk',this)">Position Sizer</div>
     <div class="tab" onclick="switchTab('ledger',this)">💰 Capital Ledger</div>
-    <div class="tab" onclick="switchTab('watchlist',this)">👁 Watchlist</div>
     <div class="tab" onclick="switchTab('rules',this)">📋 My Rules</div>
-    <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
   </div>
 </div>
 
 <div class="main-content">
+
+<div class="topbar"><button class="gear-btn" id="gear-btn" onclick="toggleGear()" aria-label="Settings" title="Settings">⚙️</button></div>
+<div class="gear-panel" id="gear-panel">
+  <div class="card-title">⚙️ Settings</div>
+  <div class="settings-row">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0">
+      <div id="acct-avatar" class="settings-avatar">–</div>
+      <div class="settings-row-text" style="min-width:0">
+        <div class="settings-row-title" id="acct-email" style="overflow:hidden;text-overflow:ellipsis">…</div>
+        <div class="settings-row-desc" id="acct-sync">Synced</div>
+      </div>
+    </div>
+    <button class="btn-hdr" onclick="tjSignOut()">Sign out</button>
+  </div>
+  <div class="settings-row">
+    <div class="settings-row-text">
+      <div class="settings-row-title">Dark Mode</div>
+      <div class="settings-row-desc">Whole website, Journal and Watchlist</div>
+    </div>
+    <label class="settings-switch">
+      <input type="checkbox" id="theme-switch" onchange="toggleDarkMode()">
+      <span class="settings-switch-slider"></span>
+    </label>
+  </div>
+    <div class="settings-row settings-row-link" role="button" tabindex="0"
+         onclick="toggleGear(false);openUpstoxSettings()" onkeypress="if(event.key==='Enter'){toggleGear(false);openUpstoxSettings()}">
+      <div class="settings-row-text">
+        <div class="settings-row-title">Upstox Live CMP</div>
+        <div class="settings-row-desc" id="upstox-status-line">Checking…</div>
+      </div>
+      <span class="settings-chevron">›</span>
+    </div>
+  <div class="gear-sec" style="border-top:1px solid var(--border);margin-top:4px">🧩 Connect the watchlist extension</div>
+  <ol class="gear-steps">
+    <li><b>Download</b> the extension below and unzip it.</li>
+    <li>Open <b>chrome://extensions</b>, turn on <b>Developer mode</b>, click <b>Load unpacked</b> and pick the unzipped folder.</li>
+    <li>On TradingView, Screener or Kite open the sidebar → <b>Settings → Trading Journal Sync</b>.</li>
+    <li>Paste the <b>connection code</b> below, then enter this website's email and password and press <b>Connect</b>.</li>
+  </ol>
+  <div class="gear-code"><input id="connect-code" readonly placeholder="Loading connection code…" onclick="this.select()"><button class="btn-hdr" onclick="copyConnectCode()">Copy</button></div>
+  <a class="btn-save gear-dl" href="/extension/tm-watchlist-extension.zip" download>⬇ Download extension (.zip)</a>
+</div>
 
 <div class="container">
 
@@ -983,52 +1053,6 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   </div>
 
   <!-- ── RULES VIEW ── -->
-  <div id="view-watchlist" style="display:none">
-    <div style="display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start" class="rules-layout">
-      <div class="ledger-add-card">
-        <div class="card-title">👁 Extension Watchlist</div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          <div style="font-size:.76rem;color:var(--text-2);line-height:1.5">
-            <b>Auto-sync:</b> in the TM Watchlist extension open <b>Settings → Trading Journal Sync</b> and connect with this account. Changes sync <b>both ways</b>: edits in the extension appear here, and flags, removals and new stocks you change here flow back to the extension (within about a minute, or when you open TradingView/Screener/Kite).<br><br>Prefer manual? Use <b>Backup All</b> in the extension and import the CSV below.
-          </div>
-          <div class="form-group">
-            <label>Backup CSV file</label>
-            <input type="file" id="wl-file" accept=".csv,text/csv,text/plain" onchange="wlImportFile(this)">
-          </div>
-          <div class="form-group">
-            <label>…or paste CSV / tickers</label>
-            <textarea id="wl-paste" placeholder="Ticker,Exchange,Color,Watchlist&#10;RELIANCE,NSE,green,My Watchlist" style="min-height:90px"></textarea>
-          </div>
-          <button class="btn-save" style="width:100%;justify-content:center;display:flex" onclick="wlImportPaste()">⬇ Import into Journal</button>
-          <button class="btn-save" style="width:100%;justify-content:center;display:flex;background:var(--surface-2);color:var(--text);border:1.5px solid var(--border)" onclick="wlExportCsv()">⬆ Export CSV (for the extension)</button>
-          <div id="wl-summary" style="background:var(--surface-2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);font-size:.78rem;color:var(--text-2)"></div>
-        </div>
-      </div>
-      <div class="table-card">
-        <div class="card-title" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <span>📋 Watchlists</span>
-          <select id="wl-list" class="filter-sel" onchange="renderWatchlistTab()"></select>
-          <select id="wl-color" class="filter-sel" onchange="renderWatchlistTab()">
-            <option value="">All colours</option><option value="green">🟢 Green</option><option value="red">🔴 Red</option>
-            <option value="yellow">🟡 Yellow</option><option value="none">⚪ None</option>
-          </select>
-          <input id="wl-search" class="filter-sel" placeholder="Search ticker…" oninput="renderWatchlistTab()" style="min-width:140px;cursor:text">
-          <button class="btn-action-icon" style="width:auto;padding:0 10px" title="Delete this watchlist" onclick="wlDeleteList()">🗑</button>
-        </div>
-        <div style="display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)">
-          <input id="wl-add" class="filter-sel" placeholder="Add stock to this list, e.g. TCS or BSE:500325" style="flex:1;cursor:text" onkeydown="if(event.key==='Enter')wlAddTicker()">
-          <button class="btn-save" onclick="wlAddTicker()" style="display:flex;justify-content:center">➕ Add</button>
-        </div>
-        <div style="overflow-x:auto">
-          <table class="trades">
-            <thead><tr><th>#</th><th>Ticker</th><th>Exchange</th><th>Flag</th><th>Open</th><th></th></tr></thead>
-            <tbody id="wl-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="view-rules" style="display:none">
     <div style="display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start" class="rules-layout">
       <!-- Left: Add rule -->
@@ -1079,48 +1103,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   </div>
 
   <!-- ── SETTINGS VIEW ── -->
-  <div id="view-settings" style="display:none">
-    <div class="settings-layout">
-
-      <div class="table-card">
-        <div class="card-title">⚙️ Preferences</div>
-
-        <div class="settings-row">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <div id="acct-avatar" class="settings-avatar">–</div>
-            <div class="settings-row-text" style="min-width:0">
-              <div class="settings-row-title" id="acct-email" style="overflow:hidden;text-overflow:ellipsis">…</div>
-              <div class="settings-row-desc" id="acct-sync">Synced</div>
-            </div>
-          </div>
-          <button class="btn-hdr" onclick="tjSignOut()">Sign out</button>
-        </div>
-
-        <div class="settings-row">
-          <div class="settings-row-text">
-            <div class="settings-row-title">Dark Mode</div>
-            <div class="settings-row-desc">Switch the whole app between light and dark theme</div>
-          </div>
-          <label class="settings-switch">
-            <input type="checkbox" id="theme-switch" onchange="toggleDarkMode()">
-            <span class="settings-switch-slider"></span>
-          </label>
-        </div>
-
-        <div class="settings-row settings-row-link" role="button" tabindex="0"
-             onclick="openUpstoxSettings()" onkeypress="if(event.key==='Enter')openUpstoxSettings()">
-          <div class="settings-row-text">
-            <div class="settings-row-title">Upstox Live CMP</div>
-            <div class="settings-row-desc" id="upstox-status-line">Checking…</div>
-          </div>
-          <span class="settings-chevron">›</span>
-        </div>
-      </div>
-
-
-
-    </div>
-  </div>
+  <div id="view-settings" style="display:none"></div>
 
 </div><!-- /container -->
 
@@ -1794,107 +1777,6 @@ function updateTagFilter(){
 /* ══════════════════════════════════════════════
    TAB SWITCH
 ══════════════════════════════════════════════ */
-
-/* ===== WATCHLIST (TM Watchlist extension data) — stored in tj_watchlists, synced like the rest of the journal ===== */
-const WL_KEY='tj_watchlists';
-const WL_COLORS={green:'🟢',red:'🔴',yellow:'🟡',none:'⚪'};
-function wlLoad(){ try{ const d=JSON.parse(localStorage.getItem(WL_KEY)||'{}'); return d&&Array.isArray(d.lists)?d:{lists:[]}; }catch(e){ return {lists:[]}; } }
-function wlSave(d){ localStorage.setItem(WL_KEY,JSON.stringify(d)); }
-function wlEsc(v){ return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function wlParseCsv(text){
-  const rows=text.split(/\r?\n/).map(r=>r.trim()).filter(Boolean);
-  const out=[]; let hasHeader=false;
-  rows.forEach((r,i)=>{
-    const c=r.split(',').map(x=>x.trim());
-    if(i===0 && /^ticker$/i.test(c[0])){ hasHeader=true; return; }
-    if(c.length===1){ c[0].split(/\s+/).forEach(t=>t&&out.push({ticker:t.toUpperCase(),exchange:'NSE',color:'none',list:'Imported'})); return; }
-    if(!c[0]) return;
-    const color=(c[2]||'none').toLowerCase();
-    out.push({ticker:c[0].toUpperCase(),exchange:(c[1]||'NSE').toUpperCase(),color:WL_COLORS[color]?color:'none',list:c.slice(3).join(',')||'Imported'});
-  });
-  return out;
-}
-function wlImportText(text){
-  const rows=wlParseCsv(text);
-  if(!rows.length){ toast('No tickers found in that data',true); return; }
-  const d=wlLoad(); let added=0, updated=0;
-  rows.forEach(r=>{
-    let l=d.lists.find(x=>x.name===r.list);
-    if(!l){ l={name:r.list,items:[]}; d.lists.push(l); }
-    const ex=l.items.find(i=>i.ticker===r.ticker&&i.exchange===r.exchange);
-    if(ex){ if(ex.color!==r.color){ ex.color=r.color; updated++; } }
-    else { l.items.push({ticker:r.ticker,exchange:r.exchange,color:r.color}); added++; }
-  });
-  wlSave(d);
-  const sel=document.getElementById('wl-list'); if(sel && rows[0]) sel.value=rows[0].list;
-  renderWatchlistTab();
-  toast('Imported '+added+' new, '+updated+' updated');
-}
-function wlImportFile(inp){
-  const f=inp.files&&inp.files[0]; if(!f) return;
-  const rd=new FileReader(); rd.onload=()=>{ wlImportText(String(rd.result||'')); inp.value=''; }; rd.readAsText(f);
-}
-function wlImportPaste(){
-  const t=document.getElementById('wl-paste'); if(!t.value.trim()){ toast('Paste some data first',true); return; }
-  wlImportText(t.value); t.value='';
-}
-function wlExportCsv(){
-  const d=wlLoad(); let csv='Ticker,Exchange,Color,Watchlist\n';
-  d.lists.forEach(l=>l.items.forEach(i=>{ csv+=i.ticker+','+i.exchange+','+(i.color||'none')+','+l.name+'\n'; }));
-  if(csv==='Ticker,Exchange,Color,Watchlist\n'){ toast('Nothing to export yet',true); return; }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='tm_watchlist_backup.csv'; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-function wlAddTicker(){
-  const inp=document.getElementById('wl-add'); const raw=inp.value.trim().toUpperCase(); if(!raw) return;
-  const d=wlLoad(); const name=document.getElementById('wl-list').value; const l=d.lists.find(x=>x.name===name);
-  if(!l){ toast('Import or create a watchlist first',true); return; }
-  let ex='NSE', t=raw; if(raw.indexOf(':')>0){ ex=raw.split(':')[0]; t=raw.split(':').slice(1).join(':'); }
-  if(!/^[A-Z0-9&._-]+$/.test(t)){ toast('Invalid ticker',true); return; }
-  if(l.items.some(i=>i.ticker===t&&i.exchange===ex)){ toast(t+' is already in this list',true); return; }
-  l.items.push({ticker:t,exchange:ex,color:'none'}); wlSave(d); inp.value=''; renderWatchlistTab();
-}
-function wlCycle(li,ti){
-  const d=wlLoad(); const it=d.lists[li]&&d.lists[li].items[ti]; if(!it) return;
-  const order=['none','green','red','yellow']; it.color=order[(order.indexOf(it.color||'none')+1)%order.length];
-  wlSave(d); renderWatchlistTab();
-}
-function wlRemove(li,ti){
-  const d=wlLoad(); if(!d.lists[li]) return; d.lists[li].items.splice(ti,1); wlSave(d); renderWatchlistTab();
-}
-function wlDeleteList(){
-  const d=wlLoad(); const name=document.getElementById('wl-list').value; const li=d.lists.findIndex(l=>l.name===name);
-  if(li<0) return;
-  if(!confirm('Delete watchlist "'+name+'" ('+d.lists[li].items.length+' stocks)?')) return;
-  d.lists.splice(li,1); wlSave(d); renderWatchlistTab();
-}
-function renderWatchlistTab(){
-  const d=wlLoad(); const sel=document.getElementById('wl-list'); if(!sel) return;
-  const prev=sel.value;
-  sel.innerHTML=d.lists.map(l=>'<option value="'+wlEsc(l.name)+'">'+wlEsc(l.name)+' ('+l.items.length+')</option>').join('')||'<option value="">No watchlists yet</option>';
-  if(d.lists.some(l=>l.name===prev)) sel.value=prev;
-  const li=d.lists.findIndex(l=>l.name===sel.value);
-  const total=d.lists.reduce((n,l)=>n+l.items.length,0);
-  const flagged=d.lists.reduce((n,l)=>n+l.items.filter(i=>i.color==='green'||i.color==='red').length,0);
-  document.getElementById('wl-summary').innerHTML='<b>'+d.lists.length+'</b> watchlists · <b>'+total+'</b> stocks · <b>'+flagged+'</b> red/green flagged';
-  const body=document.getElementById('wl-body');
-  if(li<0){ body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">Import your extension backup to see your watchlists here.</td></tr>'; return; }
-  const col=document.getElementById('wl-color').value, q=document.getElementById('wl-search').value.trim().toUpperCase();
-  const rows=[];
-  d.lists[li].items.forEach((it,ti)=>{
-    if(col && (it.color||'none')!==col) return;
-    if(q && it.ticker.indexOf(q)<0) return;
-    const t=encodeURIComponent(it.ticker), ex=encodeURIComponent(it.exchange);
-    rows.push('<tr><td>'+(rows.length+1)+'</td><td><b>'+wlEsc(it.ticker)+'</b></td><td>'+wlEsc(it.exchange)+'</td>'
-      +'<td><button class="btn-action-icon" style="width:auto;padding:0 8px" title="Click to change flag" onclick="wlCycle('+li+','+ti+')">'+WL_COLORS[it.color||'none']+'</button></td>'
-      +'<td><a href="https://www.tradingview.com/chart/?symbol='+ex+'%3A'+t+'" target="_blank" rel="noopener">TradingView</a>'
-      +(it.exchange==='NSE'||it.exchange==='BSE'?' · <a href="https://www.screener.in/company/'+t+'/" target="_blank" rel="noopener">Screener</a>':'')+'</td>'
-      +'<td><button class="btn-action-icon" title="Remove" onclick="wlRemove('+li+','+ti+')">×</button></td></tr>');
-  });
-  body.innerHTML=rows.join('')||'<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-2)">No stocks match this filter.</td></tr>';
-}
-
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
@@ -1906,8 +1788,6 @@ function switchTab(tab, el){
   document.getElementById('view-skipped').style.display  = tab==='skipped'?'block':'none';
   document.getElementById('view-rules').style.display    = tab==='rules'?'block':'none';
   document.getElementById('view-settings').style.display = tab==='settings'?'block':'none';
-  document.getElementById('view-watchlist').style.display = tab==='watchlist'?'block':'none';
-  if(tab==='watchlist') renderWatchlistTab();
   if(tab==='settings' && typeof loadUpstoxStatus==='function') loadUpstoxStatus();
 
   document.getElementById('view-charts').style.display   = tab==='charts'?'block':'none';
@@ -4460,7 +4340,6 @@ function maybeAutoRefreshCmp(){
 
 window.addEventListener('message', function(e){
   const d = e.data;
-  if(d && d.__tj && d.type==='tj-wl-refresh'){ try{ if(typeof renderWatchlistTab==='function') renderWatchlistTab(); }catch(_){} return; }
   if(d && d.__tj && d.type==='tj-sync-status'){
     const el=document.getElementById('acct-sync');
     if(el) el.textContent = d.status==='saving' ? 'Saving…' : 'Synced';
@@ -4481,6 +4360,40 @@ async function tjSignOut(){
 
 setTimeout(()=>{ loadUpstoxStatus(); loadAccount(); maybeAutoRefreshCmp(); }, 1500);
 setInterval(maybeAutoRefreshCmp, 10*60*1000);
+
+/* ── Journal ⇄ Watchlist switch: the parent page unmounts this page and mounts the other one ── */
+function tjSwitchMode(to){
+  try{ localStorage.setItem('ui_mode', to); }catch(e){}
+  try{ parent.postMessage({__tj:1, type:'tj-switch', to:to}, '*'); }catch(e){}
+}
+
+/* ── GLOBAL SETTINGS PANEL (gear) ── */
+function toggleGear(force){
+  const p=document.getElementById('gear-panel'); if(!p) return;
+  const open = typeof force==='boolean' ? force : !p.classList.contains('open');
+  p.classList.toggle('open', open);
+  if(open) loadConnectCode();
+}
+document.addEventListener('mousedown', function(e){
+  const p=document.getElementById('gear-panel');
+  if(p && p.classList.contains('open') && !p.contains(e.target) && !e.target.closest('#gear-btn')) p.classList.remove('open');
+});
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') toggleGear(false); });
+let _connectCode='';
+async function loadConnectCode(){
+  const inp=document.getElementById('connect-code'); if(!inp || _connectCode) return;
+  const r = await tcCall('tj-config');
+  if(r && r.apiKey && r.projectId){
+    _connectCode = 'TMW1.' + btoa(JSON.stringify({k:r.apiKey,p:r.projectId}));
+    inp.value = _connectCode;
+  } else { inp.value=''; inp.placeholder='Code unavailable — open the website once while signed in'; }
+}
+function copyConnectCode(){
+  const inp=document.getElementById('connect-code'); if(!inp || !inp.value) return;
+  const done=()=>{ if(typeof toast==='function') toast('Connection code copied'); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(done, ()=>{ inp.select(); document.execCommand('copy'); done(); });
+  else { inp.select(); document.execCommand('copy'); done(); }
+}
 </script>
 </body>
 </html>

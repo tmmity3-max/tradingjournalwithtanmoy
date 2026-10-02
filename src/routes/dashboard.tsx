@@ -52,6 +52,17 @@ function JournalPage() {
   const lastPushAt = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
+  // Journal ⇄ Watchlist: only ONE page is mounted at a time (the other is fully unmounted).
+  const [mode, setMode] = useState<"journal" | "watchlist">(() => {
+    try {
+      return localStorage.getItem("ui_mode") === "watchlist" ? "watchlist" : "journal";
+    } catch {
+      return "journal";
+    }
+  });
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+
   useEffect(() => {
     let cancelled = false;
     let cleanupFns: Array<() => void> = [];
@@ -142,8 +153,12 @@ function JournalPage() {
         lastJson.current = json;
         lastSnap.current = incoming;
         writeLocal(incoming);
-        if (onlyWatchlist && iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.postMessage({ __tj: 1, type: "tj-wl-refresh" }, "*");
+        if (onlyWatchlist) {
+          // Only the extension's watchlist report changed: refresh the Watchlist page if it is
+          // open; the Journal does not show it, so leave it alone.
+          if (modeRef.current === "watchlist") {
+            iframeRef.current?.contentWindow?.postMessage({ __tj: 1, type: "tj-wl-refresh" }, "*");
+          }
         } else if (iframeRef.current) {
           // eslint-disable-next-line no-self-assign
           iframeRef.current.src = iframeRef.current.src;
@@ -177,6 +192,23 @@ function JournalPage() {
             symbols?: Array<{ symbol: string; exchange: string }>;
           }
         | null;
+      if (
+        d &&
+        d.__tj &&
+        (d as { type?: string }).type === "tj-switch" &&
+        event.source === iframeRef.current?.contentWindow
+      ) {
+        const to = (d as { to?: string }).to;
+        if (to === "journal" || to === "watchlist") {
+          try {
+            localStorage.setItem("ui_mode", to);
+          } catch {
+            /* ignore */
+          }
+          setMode(to);
+        }
+        return;
+      }
       if (!d || !d.__tj || !d.rid || !d.type) return;
       const user = await currentUser();
       if (!user) return reply(event.source, { rid: d.rid, error: "auth" });
@@ -184,6 +216,15 @@ function JournalPage() {
       try {
         if (d.type === "tj-account") {
           return reply(event.source, { rid: d.rid, email: user.email ?? "" });
+        }
+        if (d.type === "tj-config") {
+          // Public web-app identifiers (not secrets) so the extension can be pointed at this project.
+          const env = import.meta.env;
+          return reply(event.source, {
+            rid: d.rid,
+            apiKey: (env["VITE_FIREBASE_API_KEY"] as string | undefined) ?? "",
+            projectId: (env["VITE_FIREBASE_PROJECT_ID"] as string | undefined) ?? "",
+          });
         }
         if (d.type === "tj-signout") {
           reply(event.source, { rid: d.rid, ok: true });
@@ -260,9 +301,10 @@ function JournalPage() {
     <main className="relative h-screen w-screen">
       <h1 className="sr-only">Trading Journal Pro — cloud-synced trade log</h1>
       <iframe
+        key={mode}
         ref={iframeRef}
-        title="Trading Journal Pro"
-        src="/app.html"
+        title={mode === "watchlist" ? "Watchlist" : "Trading Journal Pro"}
+        src={mode === "watchlist" ? "/watchlist.html" : "/app.html"}
         className="h-full w-full border-0"
       />
 

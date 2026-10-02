@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
-const EXTENSION_URL = "https://chromewebstore.google.com/detail/gjbfkcopkclkgaagngdlhcikbgginlbf";
+const EXTENSION_ZIP = "/extension/tm-watchlist-extension.zip";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",
@@ -15,7 +15,7 @@ const WITH = [
   "Add once, see it on Screener, TradingView & Kite",
   "One-click chart jumps from any platform",
   "Colour flags & notes to track your conviction",
-  "Your journal and watchlist stay in sync, both ways",
+  "Your watchlist report sits right next to your trade journal",
 ];
 const FEATURES = [
   { icon: "🔎", title: "Screener Bulk Scanner", text: "Scan every result page of a Screener.in query and import all the symbols in one click." },
@@ -128,12 +128,11 @@ function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
-                href={EXTENSION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={EXTENSION_ZIP}
+                download
                 className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-800 shadow-xl transition-colors hover:bg-blue-50"
               >
-                Install Free Extension
+                Download Extension (.zip)
               </a>
               <button
                 onClick={() => (signedIn ? navigate({ to: "/dashboard" }) : setOpen(true))}
@@ -203,8 +202,7 @@ function LandingPage() {
               <h2 className="text-2xl font-extrabold">All in one place</h2>
               <p className="mt-2 max-w-xl text-sm text-blue-100">
                 Log trades, track capital and keep your extension watchlists together. Connect the extension to your account and your
-                watchlists stay in sync both ways between the extension and the Watchlist tab, on every device.
-              </p>
+                watchlists appear on the Watchlist page, one tap away from your journal, on every device.</p>
             </div>
             <button
               onClick={() => (signedIn ? navigate({ to: "/dashboard" }) : setOpen(true))}
