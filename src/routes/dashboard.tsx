@@ -187,6 +187,22 @@ function JournalPage() {
         if (d.type === "tj-account") {
           return reply(event.source, { rid: d.rid, email: user.email ?? "" });
         }
+        if (d.type === "tj-ext-code") {
+          // One-time connection code for the TM Watchlist extension. It carries the public Firebase
+          // identifiers plus this user's refresh token, so the extension can write the watchlist to
+          // users/{uid}/journal as this user (firestore.rules still confine it to that user's data).
+          const env = import.meta.env;
+          const code = {
+            v: 1,
+            a: String(env["VITE_FIREBASE_API_KEY"] ?? ""),
+            p: String(env["VITE_FIREBASE_PROJECT_ID"] ?? ""),
+            u: user.uid,
+            e: user.email ?? "",
+            r: user.refreshToken,
+          };
+          if (!code.a || !code.p || !code.r) return reply(event.source, { rid: d.rid, error: "config" });
+          return reply(event.source, { rid: d.rid, code: "TMW1." + btoa(JSON.stringify(code)) });
+        }
         if (d.type === "tj-signout") {
           reply(event.source, { rid: d.rid, ok: true });
           await signOut();

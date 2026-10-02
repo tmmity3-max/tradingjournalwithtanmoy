@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
-const EXTENSION_URL = "https://chromewebstore.google.com/detail/gjbfkcopkclkgaagngdlhcikbgginlbf";
+const EXTENSION_ZIP = "/tm_watchlist.zip";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",
@@ -128,12 +128,11 @@ function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
-                href={EXTENSION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={EXTENSION_ZIP}
+                download="tm_watchlist.zip"
                 className="rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-800 shadow-xl transition-colors hover:bg-blue-50"
               >
-                Install Free Extension
+                Download Extension (.zip)
               </a>
               <button
                 onClick={() => (signedIn ? navigate({ to: "/dashboard" }) : setOpen(true))}
