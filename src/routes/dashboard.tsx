@@ -43,6 +43,26 @@ export const Route = createFileRoute("/dashboard")({
   component: JournalPage,
 });
 
+/** Ensure every code stored in local journal is also registered in the public linkCodes collection. */
+async function ensureLinkCodesRegistered(uid: string) {
+  try {
+    const raw = localStorage.getItem("tj_link_codes");
+    if (!raw) return;
+    const arr = JSON.parse(raw) as Array<{ code?: string }>;
+    if (!Array.isArray(arr)) return;
+    for (const item of arr) {
+      const code = (item?.code || "").trim();
+      if (!code) continue;
+      await setDoc(doc(getDb(), "linkCodes", code), {
+        uid,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  } catch (e) {
+    console.warn("[linkCodes] ensure register failed", e);
+  }
+}
+
 function JournalPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
@@ -91,6 +111,10 @@ function JournalPage() {
       }
       lastJson.current = canonical(merged);
       lastSnap.current = merged;
+
+      // Register any existing linking codes so the extension can push directly
+      await ensureLinkCodesRegistered(user.uid);
+
       if (cancelled) return;
       setReady(true);
 
@@ -268,7 +292,7 @@ function JournalPage() {
         }
         if (d.type === "tj-chart-url" && d.path) {
           const url = await chartObjectUrl(user.uid, d.path);
-          return reply(event.source, { rid: d.rid, url });
+          return reply(event.source, { rid: d.rid, path });
         }
         if (d.type === "tj-chart-delete" && d.path) {
           await deleteChart(user.uid, d.path);
