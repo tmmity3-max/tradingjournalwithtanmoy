@@ -3,10 +3,9 @@ import { useEffect, useState } from "react";
 import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
-// TM Watchlist v3.17.1 — own build, served from /public so the button
-// downloads our ZIP instead of forwarding to the original Eventrade listing.
-const EXTENSION_FILE = "/tm-watchlist-v3.17.1.zip";
-const EXTENSION_NAME = "TM Watchlist v3.17.1";
+// TM Watchlist v3.18.0 — includes linking-code field for journal sync.
+const EXTENSION_FILE = "/tm-watchlist-v3.18.0.zip";
+const EXTENSION_NAME = "TM Watchlist v3.18.0";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",
@@ -170,9 +169,27 @@ function LandingPage() {
                   (the one containing <code className="rounded bg-slate-900 px-1.5 py-0.5 text-xs">manifest.json</code>).
                 </li>
               </ol>
+
+              <p className="mt-6 text-xs font-bold uppercase tracking-widest text-blue-100">Link to your journal</p>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-white">
+                <li>
+                  Log in to this website → open <span className="font-semibold">Settings</span> (bottom of the left sidebar).
+                </li>
+                <li>
+                  Under <span className="font-semibold">Extension Linking Codes</span> click{" "}
+                  <span className="font-semibold">Generate Code</span> (max 3 codes).
+                </li>
+                <li>
+                  In the extension open the sidebar → <span className="font-semibold">Settings → Trading Journal Sync</span>.
+                </li>
+                <li>
+                  Paste the code → press <span className="font-semibold">Link</span>, then{" "}
+                  <span className="font-semibold">Connect &amp; Sync</span>.
+                </li>
+              </ol>
               <p className="mt-4 text-xs text-blue-100">
-                Your watchlists stay in Chrome&apos;s local storage — nothing leaves your machine until you
-                connect the extension to your journal below.
+                You only paste the code once. The link lasts until you revoke that code in website Settings.
+                Re-download v3.18.0+ if your installed extension has no code field.
               </p>
             </div>
           </div>
