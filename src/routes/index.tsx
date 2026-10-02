@@ -232,10 +232,12 @@ function LandingPage() {
                 your lists there, and they appear in the Watchlist section of the website on every device.
               </p>
               <p className="mt-3 max-w-xl text-sm text-blue-100">
-                To connect: install the extension, open its sidebar on any supported site, then go to{" "}
-                <span className="font-semibold text-white">Settings → Trading Journal Sync</span> and press{" "}
-                <span className="font-semibold text-white">Connect &amp; Sync</span>. The extension writes your
-                lists to this site, and they sync to every device you sign in on.
+                To connect: log in here, open Settings (gear icon top-right) and generate a linking code.
+                In the extension go to{" "}
+                <span className="font-semibold text-white">Settings → Trading Journal Sync</span>, paste the code,
+                then press{" "}
+                <span className="font-semibold text-white">Connect &amp; Sync</span>. Max 3 codes per account;
+                the link lasts until you revoke the code.
               </p>
             </div>
             <button

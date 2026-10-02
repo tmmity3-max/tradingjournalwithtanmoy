@@ -49,7 +49,8 @@ export const Store = {
       isCompact: false,
       upstoxAccessToken: '',
       showLiveBadges: true,
-      journalUrl: 'https://tradingjournalwithtanmoy.lovable.app'
+      journalUrl: 'https://tradingjournalwithtanmoy.lovable.app',
+      linkCode: ''
     }
   },
 
@@ -105,6 +106,9 @@ export const Store = {
         }
         if (typeof this.state.settings.journalUrl === 'undefined' || !this.state.settings.journalUrl) {
           this.state.settings.journalUrl = 'https://tradingjournalwithtanmoy.lovable.app';
+        }
+        if (typeof this.state.settings.linkCode === 'undefined') {
+          this.state.settings.linkCode = '';
         }
       }
 

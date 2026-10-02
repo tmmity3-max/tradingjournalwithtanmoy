@@ -602,6 +602,19 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
   .exit-row{grid-template-columns:1fr}
   .dash-kpi-grid{grid-template-columns:1fr 1fr}
 }
+
+/* Global settings gear (top-right) */
+.global-settings-btn{
+  position:fixed; top:14px; right:18px; z-index:300;
+  width:42px; height:42px; border-radius:12px;
+  background:var(--surface); color:var(--text);
+  border:1px solid var(--border); box-shadow:0 4px 14px rgba(0,0,0,.12);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.25rem; cursor:pointer; transition:all .18s;
+}
+.global-settings-btn:hover{ background:var(--header-bg); color:#fff; border-color:transparent; transform:scale(1.05); }
+.global-settings-btn:active{ transform:scale(.97); }
+
 </style>
 </head>
 <body>
@@ -636,7 +649,6 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
     <div class="tab" data-tab="risk" onclick="switchTab('risk',this)">Position Sizer</div>
     <div class="tab" data-tab="ledger" onclick="switchTab('ledger',this)">💰 Capital Ledger</div>
     <div class="tab" data-tab="rules" onclick="switchTab('rules',this)">📋 My Rules</div>
-    <div class="tab" data-tab="settings" onclick="switchTab('settings',this)">⚙️ Settings</div>
    </div>
    <div class="tabs-group" id="tabs-watchlist" hidden>
     <div class="tab-group-label">👁 Watchlist</div>
@@ -648,6 +660,9 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
 </div>
 
 <div class="main-content">
+
+<button type="button" class="global-settings-btn" id="global-settings-btn" title="Settings" aria-label="Open settings" onclick="switchTab('settings',null)">⚙️</button>
+
 
 <div class="container">
 
@@ -1018,7 +1033,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
         <div class="card-title">👁 Extension Watchlist</div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
           <div style="font-size:.76rem;color:var(--text-2);line-height:1.5">
-            <b>Connect once:</b> in the TM Watchlist extension open <b>Settings &rarr; Trading Journal Sync</b> and sign in with this account. After that every change you make in the extension syncs here.
+            <b>Connect once:</b> in the TM Watchlist extension open <b>Settings → Trading Journal Sync</b>, paste a linking code from website Settings, then Connect &amp; Sync.
           </div>
           <div id="wl-summary" style="background:var(--surface-2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);font-size:.78rem;color:var(--text-2)"></div>
           <button class="btn-save" style="width:100%;justify-content:center;display:flex;background:var(--surface-2);color:var(--text);border:1.5px solid var(--border)" onclick="wlExportCsv()">⬇ Download backup (CSV)</button>
@@ -1137,7 +1152,7 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
         <div class="settings-row">
           <div class="settings-row-text">
             <div class="settings-row-title">How to connect</div>
-            <div class="settings-row-desc">In the TM Watchlist extension open <b>Settings &rarr; Trading Journal Sync</b> and sign in with the same account you use here. Your lists then sync to every device.</div>
+            <div class="settings-row-desc">In the TM Watchlist extension open <b>Settings → Trading Journal Sync</b>, paste a linking code generated here (Settings → Extension Linking Codes), then press Connect &amp; Sync. Max 3 codes per account.</div>
           </div>
         </div>
         <div class="settings-row">
@@ -1250,7 +1265,26 @@ table.ledger-tbl tbody td{padding:9px 12px;font-size:.82rem;color:var(--text);ve
         </div>
       </div>
 
+      <div class="table-card">
+        <div class="card-title">🔗 Extension Linking Codes</div>
+        <div style="padding:14px 18px;font-size:.8rem;color:var(--text-2);line-height:1.5">
+          Generate a code here, then paste it once in the <b>TM Watchlist</b> extension
+          (Settings → Trading Journal Sync). The extension stays linked until you revoke the code.
+          <b>Max 3 active codes</b> per account.
+        </div>
 
+        <div class="settings-row">
+          <div class="settings-row-text">
+            <div class="settings-row-title">Active codes</div>
+            <div class="settings-row-desc" id="link-codes-count">0 / 3 used</div>
+          </div>
+          <button class="btn-primary" id="btn-gen-link-code" onclick="generateLinkCode()">＋ Generate Code</button>
+        </div>
+
+        <div id="link-codes-list" style="padding:0 0 8px 0">
+          <div style="text-align:center;color:var(--text-3);padding:16px;font-size:.85rem">No codes yet. Generate one to link an extension.</div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -2054,6 +2088,7 @@ function setMode(mode,keepTab){
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
+  // When opened from the global gear, no sidebar tab is active — that's fine.
   _lastTab[tabMode(tab)]=tab;
   document.getElementById('view-dashboard').style.display = tab==='dashboard'?'block':'none';
   document.getElementById('view-all').style.display      = (tab==='all'||tab==='open'||tab==='closed')?'block':'none';
@@ -2092,6 +2127,7 @@ function switchTab(tab, el){
   } else if(tab==='settings'){
     const themeSwitch = document.getElementById('theme-switch');
     if(themeSwitch) themeSwitch.checked = document.documentElement.getAttribute('data-theme')==='dark';
+    if(typeof renderLinkCodes==='function') renderLinkCodes();
   } else if(tab==='dashboard'){
     renderDashboard();
     setTimeout(()=>{ buildQuoteDots(); quoteShow(quoteIdx); quoteStartAuto(); }, 50);
@@ -4641,6 +4677,76 @@ async function loadAccount(){
   const av = document.getElementById('acct-avatar');
   if(av) av.textContent = (email[0]||'?');
 }
+
+/* ── Extension linking codes (max 3) ── */
+const LINK_CODES_KEY = 'tj_link_codes';
+const MAX_LINK_CODES = 3;
+
+function readLinkCodes(){
+  try{
+    const raw = localStorage.getItem(LINK_CODES_KEY);
+    if(!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return []; }
+}
+function writeLinkCodes(arr){
+  localStorage.setItem(LINK_CODES_KEY, JSON.stringify(arr));
+  // Trigger the parent dashboard sync (storage event / poll)
+  try{ window.dispatchEvent(new Event('storage')); }catch(e){}
+}
+function genCode(){
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  for(let i=0;i<8;i++) s += alphabet[bytes[i] % alphabet.length];
+  // Format XXXX-XXXX for readability
+  return s.slice(0,4) + '-' + s.slice(4);
+}
+function generateLinkCode(){
+  const codes = readLinkCodes();
+  if(codes.length >= MAX_LINK_CODES){
+    alert('Maximum of 3 linking codes reached. Revoke one before generating a new code.');
+    return;
+  }
+  const code = genCode();
+  codes.push({ code, createdAt: Date.now(), label: 'Device ' + (codes.length+1) });
+  writeLinkCodes(codes);
+  renderLinkCodes();
+  // Copy to clipboard for convenience
+  try{ navigator.clipboard.writeText(code); }catch(e){}
+}
+function revokeLinkCode(code){
+  if(!confirm('Revoke code ' + code + '? The extension using this code will stop syncing until a new code is pasted.')) return;
+  writeLinkCodes(readLinkCodes().filter(c => c.code !== code));
+  renderLinkCodes();
+}
+function renderLinkCodes(){
+  const list = document.getElementById('link-codes-list');
+  const countEl = document.getElementById('link-codes-count');
+  const btn = document.getElementById('btn-gen-link-code');
+  if(!list) return;
+  const codes = readLinkCodes();
+  if(countEl) countEl.textContent = codes.length + ' / ' + MAX_LINK_CODES + ' used';
+  if(btn) btn.disabled = codes.length >= MAX_LINK_CODES;
+  if(!codes.length){
+    list.innerHTML = '<div style="text-align:center;color:var(--text-3);padding:16px;font-size:.85rem">No codes yet. Generate one to link an extension.</div>';
+    return;
+  }
+  list.innerHTML = codes.map(c => {
+    const d = new Date(c.createdAt);
+    const when = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    return `<div class="settings-row">
+      <div class="settings-row-text">
+        <div class="settings-row-title" style="font-family:ui-monospace,monospace;letter-spacing:1px">${c.code}</div>
+        <div class="settings-row-desc">Created ${when}${c.label ? ' · ' + c.label : ''}</div>
+      </div>
+      <button class="btn-hdr" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca" onclick="revokeLinkCode('${c.code}')">Revoke</button>
+    </div>`;
+  }).join('');
+}
+
 async function tjSignOut(){
   await tcCall('tj-signout');
 }

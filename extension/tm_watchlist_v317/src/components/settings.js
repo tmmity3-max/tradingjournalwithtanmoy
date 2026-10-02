@@ -50,8 +50,13 @@ export const SettingsComponent = {
             <hr style="border:0; border-top:1px solid var(--et-border, #e0e0e0);">
             <h4>Trading Journal Sync</h4>
             <div style="font-size:11px; color:#888; margin-bottom:10px; line-height:1.4;">
-              Push your watchlists into the Trading Journal website. They sync to every device you sign in on,
-              and the site can then link each stock to TradingView and Screener.
+              1. Log in to the Trading Journal website with Google.<br>
+              2. Open <b>Settings</b> (gear icon top-right) → generate a linking code.<br>
+              3. Paste the code below once. The extension stays linked until you revoke the code on the website (max 3 codes).
+            </div>
+            <div style="display:flex; gap:5px; margin-bottom:6px;">
+              <input type="text" id="txt-link-code" placeholder="XXXX-XXXX linking code" value="${Store.state.settings.linkCode || ''}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px; letter-spacing:1px; text-transform:uppercase;">
+              <button class="btn-primary" id="btn-save-link-code">Link</button>
             </div>
             <div style="display:flex; gap:5px; margin-bottom:6px;">
               <input type="text" id="txt-journal-url" placeholder="Journal URL" value="${Store.state.settings.journalUrl || JournalSync.DEFAULT_JOURNAL_URL}" style="flex:1; padding:6px; border-radius:4px; border:1px solid var(--et-border,#e0e0e0); background:var(--et-bg,#fff); color:var(--et-fg,#333); font-size:12px;">
@@ -62,6 +67,7 @@ export const SettingsComponent = {
               <button class="icon-btn" id="btn-open-journal" style="border:1px solid var(--et-border,#e0e0e0); padding:4px 8px; font-size:11px;">Open Site</button>
             </div>
             <div style="font-size:11px; color:#888; margin-top:6px; line-height:1.4;" id="journal-status">
+              ${Store.state.settings.linkCode ? 'Linked with code ' + Store.state.settings.linkCode + '. ' : 'Not linked yet. '}
               ${JournalSync.symbolCount()} symbol(s) across ${Store.state.watchlists.filter(w => !w.isVirtual).length} list(s) ready to sync.
             </div>
             <hr style="border:0; border-top:1px solid var(--et-border, #e0e0e0); margin-top:15px;">
@@ -122,6 +128,19 @@ export const SettingsComponent = {
 
     isolateFromPageHotkeys(div.querySelector('#txt-journal-url'));
 
+    isolateFromPageHotkeys(div.querySelector('#txt-link-code'));
+    div.querySelector('#btn-save-link-code').onclick = () => {
+      const raw = (div.querySelector('#txt-link-code').value || '').trim().toUpperCase();
+      const code = raw.replace(/[^A-Z0-9-]/g, '');
+      if (!code || code.length < 6) {
+        setJournalStatus('Enter a valid linking code from the website Settings.', '#e53935');
+        return;
+      }
+      Store.state.settings.linkCode = code;
+      Store.save();
+      setJournalStatus('Linked with code ' + code + '. You only need to do this once.', '#4caf50');
+      Logger.info(`[Settings] Link code saved: ${code}`);
+    };
     div.querySelector('#btn-save-journal-url').onclick = () => {
       const saved = JournalSync.setUrl(div.querySelector('#txt-journal-url').value);
       setJournalStatus('Journal URL saved.', '#4caf50');
