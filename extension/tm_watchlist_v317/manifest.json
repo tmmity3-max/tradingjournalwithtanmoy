@@ -2,7 +2,7 @@
   "update_url": "https://clients2.google.com/service/update2/crx",
   "manifest_version": 3,
   "name": "TM Watchlist — Watchlist for Zerodha, TradingView & Screener",
-  "version": "3.20.0",
+  "version": "3.20.1",
   "description": "A unified Watchlist for multiple platforms Screener, TradingView & Zerodha. Built and improved by Tanmoy Maity. Save time switching between platforms.",
   "permissions": [
     "storage",
@@ -88,6 +88,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://tradingjournalwithtanmoy.vercel.app https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://tradingjournalwithtanmoy.vercel.app https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://tradingjournalwithtanmoy.vercel.app https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://tradingjournalwithtanmoy.vercel.app https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; style-src 'self' 'unsafe-inline';"
   }
 }
