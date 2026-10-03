@@ -15,15 +15,19 @@ export const Route = createFileRoute("/api/firebase-public-config")({
           process.env["FIREBASE_PROJECT_ID"] ||
           "";
         const apiKey = process.env["VITE_FIREBASE_API_KEY"] || "";
+        const authDomain =
+          process.env["VITE_FIREBASE_AUTH_DOMAIN"] ||
+          (projectId ? projectId + ".firebaseapp.com" : "");
+        const appId = process.env["VITE_FIREBASE_APP_ID"] || "";
 
-        if (!projectId || !apiKey) {
+        if (!projectId || !apiKey || !authDomain || !appId) {
           return new Response(
             JSON.stringify({ error: "Firebase config not set on server" }),
             { status: 503, headers: { "content-type": "application/json" } },
           );
         }
 
-        return new Response(JSON.stringify({ projectId, apiKey }), {
+        return new Response(JSON.stringify({ projectId, apiKey, authDomain, appId }), {
           status: 200,
           headers: {
             "content-type": "application/json",
