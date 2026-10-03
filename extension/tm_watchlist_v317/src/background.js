@@ -14,6 +14,79 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 // Set Uninstall URL — points at the user's own journal, so uninstalling
 // lands somewhere that belongs to the same product.
 const JOURNAL_URL = "https://tradingjournalwithtanmoy.vercel.app";
+
+const OFFSCREEN_DOCUMENT_PATH = '/offscreen.html';
+let creatingOffscreenDocument = null;
+
+async function hasFirebaseAuthDocument() {
+  if (chrome.offscreen?.hasDocument) return chrome.offscreen.hasDocument();
+  if (chrome.runtime.getContexts) {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH)]
+    });
+    return contexts.length > 0;
+  }
+  const matched = await clients.matchAll();
+  return matched.some(client => client.url === chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH));
+}
+
+async function ensureFirebaseAuthDocument() {
+  if (await hasFirebaseAuthDocument()) return;
+  if (!creatingOffscreenDocument) {
+    creatingOffscreenDocument = chrome.offscreen.createDocument({
+      url: OFFSCREEN_DOCUMENT_PATH,
+      reasons: ['IFRAME_SCRIPTING'],
+      justification: 'Keep Firebase Google authentication available to sync the extension watchlist to the signed-in Trading Journal account.'
+    }).finally(() => {
+      creatingOffscreenDocument = null;
+    });
+  }
+  await creatingOffscreenDocument;
+}
+
+async function requestFirebaseAuth(action) {
+  await ensureFirebaseAuthDocument();
+  const result = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'firebase-auth',
+    action
+  });
+  if (!result?.ok) throw new Error(result?.error || 'Firebase authentication failed.');
+  if (result.uid) {
+    await chrome.storage.local.set({
+      tjFirebaseAuth: {
+        uid: result.uid,
+        email: result.email || '',
+        displayName: result.displayName || '',
+        photoURL: result.photoURL || '',
+        signedIn: true
+      }
+    });
+  }
+  return result;
+}
+
+async function getFirebaseAuthToken() {
+  await ensureFirebaseAuthDocument();
+  const result = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'firebase-auth',
+    action: 'getToken'
+  });
+  if (!result?.ok) throw new Error(result?.error || 'Google sign-in required.');
+  await chrome.storage.local.set({
+    tjFirebaseAuth: {
+      uid: result.uid,
+      email: result.email || '',
+      displayName: result.displayName || '',
+      photoURL: result.photoURL || '',
+      signedIn: true
+    }
+  });
+  return result;
+}
+
 chrome.storage.sync.get(['etAnonUserId'], (syncRes) => {
     if (syncRes.etAnonUserId) {
         chrome.runtime.setUninstallURL(`${JOURNAL_URL}/?event=uninstall`);
@@ -260,9 +333,16 @@ async function softSyncToOpenJournal() {
 async function directSyncToFirestore() {
   const { etData_v3: state } = await chrome.storage.local.get(['etData_v3']);
   if (!state) return { skipped: true, reason: 'no-data' };
-  const linkCode = state?.settings?.linkCode || '';
-  if (!linkCode) return { skipped: true, reason: 'no-code' };
-  return pushDirect(state, linkCode);
+
+  try {
+    const auth = await getFirebaseAuthToken();
+    return pushDirect(state, null, auth);
+  } catch (authError) {
+    // Legacy linking-code sync remains as a compatibility fallback for old installs.
+    const linkCode = state?.settings?.linkCode || '';
+    if (linkCode) return pushDirect(state, linkCode);
+    return { ok: false, skipped: true, reason: 'auth-required', error: authError.message };
+  }
 }
 
 let _softSyncTimer = null;
@@ -311,11 +391,21 @@ async function handleJournalRequest(request) {
 
     // JOURNAL_SYNC — also try direct first, then tab injection
     const { etData_v3: state } = await chrome.storage.local.get(['etData_v3']);
-    const linkCode = state?.settings?.linkCode || '';
-    if (linkCode && state) {
-      const direct = await pushDirect(state, linkCode);
-      if (direct.ok) {
-        return { lists: direct.lists, items: direct.items, direct: true };
+    if (state) {
+      try {
+        const auth = await getFirebaseAuthToken();
+        const direct = await pushDirect(state, null, auth);
+        if (direct.ok) {
+          return { lists: direct.lists, items: direct.items, direct: true };
+        }
+      } catch (authError) {
+        const linkCode = state?.settings?.linkCode || '';
+        if (linkCode) {
+          const direct = await pushDirect(state, linkCode);
+          if (direct.ok) {
+            return { lists: direct.lists, items: direct.items, direct: true, legacy: true };
+          }
+        }
       }
     }
 
@@ -346,6 +436,39 @@ async function handleJournalRequest(request) {
     return result;
 }
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'FIREBASE_SIGN_IN') {
+      requestFirebaseAuth('signIn')
+        .then(result => sendResponse({ ok: true, user: result }))
+        .catch(e => sendResponse({ ok: false, error: e.message || String(e) }));
+      return true;
+    }
+
+    if (request.action === 'FIREBASE_GET_TOKEN') {
+      getFirebaseAuthToken()
+        .then(result => sendResponse({ ok: true, user: result }))
+        .catch(e => sendResponse({ ok: false, error: e.message || String(e) }));
+      return true;
+    }
+
+    if (request.action === 'FIREBASE_SIGN_OUT') {
+      requestFirebaseAuth('signOut')
+        .then(async () => {
+          await chrome.storage.local.remove(['tjFirebaseAuth']);
+          sendResponse({ ok: true });
+        })
+        .catch(e => sendResponse({ ok: false, error: e.message || String(e) }));
+      return true;
+    }
+
+    if (request.action === 'FIREBASE_STATUS') {
+      chrome.storage.local.get(['tjFirebaseAuth']).then(({ tjFirebaseAuth }) => {
+        sendResponse({ ok: true, auth: tjFirebaseAuth || null });
+      });
+      return true;
+    }
+});
+ 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // ── Trading Journal sync ──────────────────────────────────────────────
     // The content script has no chrome.tabs / chrome.scripting access, so
