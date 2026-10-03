@@ -1,13 +1,14 @@
 {
   "update_url": "https://clients2.google.com/service/update2/crx",
   "manifest_version": 3,
-  "name": "TM Watchlist \u2014 Watchlist for Zerodha, TradingView & Screener",
-  "version": "3.19.0",
+  "name": "TM Watchlist — Watchlist for Zerodha, TradingView & Screener",
+  "version": "3.20.0",
   "description": "A unified Watchlist for multiple platforms Screener, TradingView & Zerodha. Built and improved by Tanmoy Maity. Save time switching between platforms.",
   "permissions": [
     "storage",
     "declarativeNetRequest",
-    "scripting"
+    "scripting",
+    "offscreen"
   ],
   "icons": {
     "16": "tm16px.png",
@@ -85,5 +86,8 @@
         "https://kite.zerodha.com/*"
       ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://tradingjournalwithtanmoy.vercel.app https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://tradingjournalwithtanmoy.vercel.app https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com;"
+  }
 }
