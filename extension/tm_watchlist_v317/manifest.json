@@ -88,6 +88,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://tradingjournalwithtanmoy.vercel.app https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://tradingjournalwithtanmoy.vercel.app https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; style-src 'self' 'unsafe-inline';"
+    "extension_pages": "script-src 'self' https://apis.google.com https://www.gstatic.com; object-src 'self'; frame-src https://tradingjournalwithtanmoy.vercel.app https://*.firebaseapp.com https://accounts.google.com; connect-src 'self' https://tradingjournalwithtanmoy.vercel.app https://apis.google.com https://www.gstatic.com https://www.googleapis.com https://*.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com; style-src 'self' 'unsafe-inline';"
   }
 }
