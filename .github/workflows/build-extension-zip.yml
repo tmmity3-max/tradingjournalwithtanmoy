@@ -1,0 +1,38 @@
+name: Build TM Watchlist extension ZIP
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "public/tm-watchlist-v3.20.1.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-extension-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build extension ZIP
+        run: |
+          rm -f public/tm-watchlist-v3.20.1.zip
+          cd extension
+          zip -r ../public/tm-watchlist-v3.20.1.zip tm_watchlist_v317
+
+      - name: Commit ZIP if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/tm-watchlist-v3.20.1.zip
+          if git diff --cached --quiet; then
+            echo "ZIP is already up to date."
+            exit 0
+          fi
+          git commit -m "Build TM Watchlist v3.20.1 extension ZIP"
+          git push
