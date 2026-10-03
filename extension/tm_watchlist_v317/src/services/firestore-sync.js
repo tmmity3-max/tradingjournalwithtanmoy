@@ -58,6 +58,19 @@ function docPath(projectId, ...segments) {
   return `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${encoded}`;
 }
 
+async function lookupUid(code) {
+  const cfg = await loadConfig();
+  if (!cfg) throw new Error('Firebase config unavailable');
+  const url = `${docPath(cfg.projectId, 'linkCodes', code)}?key=${encodeURIComponent(cfg.apiKey)}`;
+  const res = await fetch(url);
+  if (res.status === 404) throw new Error('Legacy linking code not found or revoked');
+  if (!res.ok) throw new Error(`Legacy link lookup failed (${res.status})`);
+  const body = await res.json();
+  const uid = body?.fields?.uid?.stringValue;
+  if (!uid) throw new Error('Legacy linking code has no uid');
+  return uid;
+}
+
 async function writeJournalKey(uid, key, value, auth) {
   const cfg = await loadConfig();
   if (!cfg) throw new Error('Firebase config unavailable');
