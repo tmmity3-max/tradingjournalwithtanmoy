@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
-// TM Watchlist v3.18.5 — includes linking-code field for journal sync.
+// TM Watchlist v3.20.1 — Google account sync for the Chrome extension.
 const EXTENSION_FILE = "/tm-watchlist-v3.20.1.zip";
 const EXTENSION_NAME = "TM Watchlist v3.20.1";
 
@@ -170,25 +170,23 @@ function LandingPage() {
                 </li>
               </ol>
 
-              <p className="mt-6 text-xs font-bold uppercase tracking-widest text-blue-100">Link to your journal</p>
+              <p className="mt-6 text-xs font-bold uppercase tracking-widest text-blue-100">Google account sync</p>
               <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-white">
                 <li>
-                  Log in to this website → open <span className="font-semibold">Settings</span> (bottom of the left sidebar).
+                  Log in to this website with <span className="font-semibold">Google</span>.
                 </li>
                 <li>
-                  Under <span className="font-semibold">Google Account Sync</span> (max 3 codes).
+                  In the extension open <span className="font-semibold">Settings → Trading Journal Sync</span>.
                 </li>
                 <li>
-                  In the extension open the sidebar → <span className="font-semibold">Settings → Trading Journal Sync</span>.
+                  Click <span className="font-semibold">Sign in with Google</span> and use the same Google account.
                 </li>
                 <li>
-                  Paste the code → press <span className="font-semibold">Link</span>, then{" "}
-                  <span className="font-semibold">Connect &amp; Sync</span>.
+                  Click <span className="font-semibold">Sync Now</span>. Your extension watchlists and journal data can then sync to your account without a linking code.
                 </li>
               </ol>
               <p className="mt-4 text-xs text-blue-100">
-                You only paste the code once. The link lasts until you revoke that code in website Settings.
-                Re-download v3.20.1 if your installed extension still shows the old linking-code field.
+                If your installed extension still shows the old linking-code field, remove it from Chrome and load the newly downloaded v3.20.1 extension.
               </p>
             </div>
           </div>
