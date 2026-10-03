@@ -4,8 +4,8 @@ import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
 // TM Watchlist v3.20.1 — Google account sync for the Chrome extension.
-const EXTENSION_FILE = "/tm-watchlist-v3.20.1.zip";
-const EXTENSION_NAME = "TM Watchlist v3.20.1";
+const EXTENSION_FILE = "https://github.com/tmmity3-max/tradingjournalwithtanmoy/archive/refs/heads/main.zip";
+const EXTENSION_NAME = "TM Watchlist latest source (v3.20.1)";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",
