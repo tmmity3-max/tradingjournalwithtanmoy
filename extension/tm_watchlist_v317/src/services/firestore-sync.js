@@ -1,13 +1,13 @@
 /**
- * FirestoreSync — push watchlists directly to Firestore using a linking code.
+ * FirestoreSync — push watchlists directly to Firestore using the signed-in
+ * Firebase Google account.
  *
  * Flow:
- *  1. Look up linkCodes/{code} → { uid }
- *  2. Write users/{uid}/journal/tj_watchlists and tj_wl_settings
- *     with a linkCode field so Firestore rules allow the unauthenticated write.
+ *  1. The extension authenticates with Google through the journal's Firebase project.
+ *  2. The extension receives a Firebase ID token + uid.
+ *  3. It writes users/{uid}/journal/* with Authorization: Bearer <ID token>.
  *
- * Firebase project config is fetched once from the journal site
- * (/api/firebase-public-config) and cached in chrome.storage.
+ * Linking codes remain supported only as a legacy fallback for older installs.
  */
 
 const DEFAULT_JOURNAL = 'https://tradingjournalwithtanmoy.vercel.app';
@@ -25,6 +25,7 @@ let _cfg = null; // { projectId, apiKey }
 let _uidCache = {}; // code → uid
 let _lastPayloadJson = '';
 
+
 async function loadConfig() {
   if (_cfg?.projectId && _cfg?.apiKey) return _cfg;
 
@@ -34,27 +35,20 @@ async function loadConfig() {
     return _cfg;
   }
 
-  // Ask the journal site for its public Firebase identifiers
-  const bases = [
-    DEFAULT_JOURNAL,
-    'https://tradingjournalwithtanmoy.lovable.app'
-  ];
-  for (const base of bases) {
-    try {
-      const res = await fetch(`${base}/api/firebase-public-config`, {
-        method: 'GET',
-        cache: 'no-store'
-      });
-      if (!res.ok) continue;
-      const json = await res.json();
-      if (json?.projectId && json?.apiKey) {
-        _cfg = { projectId: json.projectId, apiKey: json.apiKey };
-        await chrome.storage.local.set({ tjFirebaseConfig: _cfg });
-        return _cfg;
-      }
-    } catch (e) {
-      // try next
+  try {
+    const res = await fetch('https://tradingjournalwithtanmoy.vercel.app/api/firebase-public-config', {
+      method: 'GET',
+      cache: 'no-store'
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json?.projectId && json?.apiKey) {
+      _cfg = { projectId: json.projectId, apiKey: json.apiKey };
+      await chrome.storage.local.set({ tjFirebaseConfig: _cfg });
+      return _cfg;
     }
+  } catch (e) {
+    console.warn('[FirestoreSync] Firebase config load failed', e);
   }
   return null;
 }
@@ -64,39 +58,25 @@ function docPath(projectId, ...segments) {
   return `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${encoded}`;
 }
 
-async function lookupUid(code) {
-  if (_uidCache[code]) return _uidCache[code];
+async function writeJournalKey(uid, key, value, auth) {
   const cfg = await loadConfig();
   if (!cfg) throw new Error('Firebase config unavailable');
 
-  const url = `${docPath(cfg.projectId, 'linkCodes', code)}?key=${encodeURIComponent(cfg.apiKey)}`;
-  const res = await fetch(url);
-  if (res.status === 404) throw new Error('Linking code not found or revoked');
-  if (!res.ok) throw new Error(`Lookup failed (${res.status})`);
-  const body = await res.json();
-  const uid = body?.fields?.uid?.stringValue;
-  if (!uid) throw new Error('Linking code has no uid');
-  _uidCache[code] = uid;
-  return uid;
-}
-
-async function writeJournalKey(uid, key, value, linkCode) {
-  const cfg = await loadConfig();
-  if (!cfg) throw new Error('Firebase config unavailable');
-
-  // Document id is encodeURIComponent(key) to match the website's journal-sync.ts
   const docId = encodeURIComponent(key);
-  const url = `${docPath(cfg.projectId, 'users', uid, 'journal', docId)}?key=${encodeURIComponent(cfg.apiKey)}`;
-
+  const url = `${docPath(cfg.projectId, 'users', uid, 'journal', docId)}`;
   const fields = {
     key: { stringValue: key },
-    value: { stringValue: typeof value === 'string' ? value : JSON.stringify(value) },
-    linkCode: { stringValue: linkCode }
+    value: { stringValue: typeof value === 'string' ? value : JSON.stringify(value) }
   };
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth?.idToken) headers.Authorization = `Bearer ${auth.idToken}`;
+  else if (auth?.linkCode) fields.linkCode = { stringValue: auth.linkCode };
+  else throw new Error('Google sign-in required');
 
   const res = await fetch(url, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ fields })
   });
   if (!res.ok) {
@@ -128,21 +108,24 @@ function buildPayload(state) {
  * Push current watchlists to Firestore using the saved linking code.
  * Returns { ok, lists, items, skipped?, error? }
  */
-export async function pushDirect(state, linkCode) {
+export async function pushDirect(state, linkCode, authSession) {
   const code = (linkCode || '').trim().toUpperCase();
-  if (!code || code.length < 6) return { ok: false, skipped: true, reason: 'no-code' };
+  const auth = authSession?.idToken
+    ? authSession
+    : (code ? { linkCode: code } : null);
+
+  if (!auth) return { ok: false, skipped: true, reason: 'auth-required' };
 
   const payload = buildPayload(state);
   const payloadJson = JSON.stringify(payload);
-  // Skip network if nothing changed since last successful push
   if (payloadJson === _lastPayloadJson) {
     return { ok: true, skipped: true, reason: 'unchanged', lists: payload.lists.length };
   }
 
   try {
-    const uid = await lookupUid(code);
-    await writeJournalKey(uid, WL_KEY, payloadJson, code);
-    await writeJournalKey(uid, WL_SET_KEY, JSON.stringify(DEFAULT_WL_SETTINGS), code);
+    const uid = auth.uid || await lookupUid(code);
+    await writeJournalKey(uid, WL_KEY, payloadJson, auth);
+    await writeJournalKey(uid, WL_SET_KEY, JSON.stringify(DEFAULT_WL_SETTINGS), auth);
     _lastPayloadJson = payloadJson;
 
     const items = payload.lists.reduce((n, l) => n + l.items.length, 0);
@@ -151,7 +134,7 @@ export async function pushDirect(state, linkCode) {
         at: Date.now(),
         lists: payload.lists.length,
         items,
-        url: 'firestore-direct',
+        url: 'firestore-auth',
         auto: true,
         direct: true
       }
