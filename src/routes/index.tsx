@@ -4,8 +4,8 @@ import { currentUser } from "@/lib/auth";
 import { LoginModal } from "@/components/LoginModal";
 
 // TM Watchlist v3.18.5 — includes linking-code field for journal sync.
-const EXTENSION_FILE = "/tm-watchlist-v3.18.5.zip";
-const EXTENSION_NAME = "TM Watchlist v3.18.5";
+const EXTENSION_FILE = "/tm-watchlist-v3.20.1.zip";
+const EXTENSION_NAME = "TM Watchlist v3.20.1";
 
 const WITHOUT = [
   "Copy 15+ symbols by hand between platforms",
@@ -176,8 +176,7 @@ function LandingPage() {
                   Log in to this website → open <span className="font-semibold">Settings</span> (bottom of the left sidebar).
                 </li>
                 <li>
-                  Under <span className="font-semibold">Extension Linking Codes</span> click{" "}
-                  <span className="font-semibold">Generate Code</span> (max 3 codes).
+                  Under <span className="font-semibold">Google Account Sync</span> (max 3 codes).
                 </li>
                 <li>
                   In the extension open the sidebar → <span className="font-semibold">Settings → Trading Journal Sync</span>.
@@ -189,7 +188,7 @@ function LandingPage() {
               </ol>
               <p className="mt-4 text-xs text-blue-100">
                 You only paste the code once. The link lasts until you revoke that code in website Settings.
-                Re-download v3.18.0+ if your installed extension has no code field.
+                Re-download v3.20.1 if your installed extension still shows the old linking-code field.
               </p>
             </div>
           </div>
