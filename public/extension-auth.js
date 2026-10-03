@@ -77,7 +77,7 @@ async function signOutUser() {
 }
 
 window.addEventListener("message", async (event) => {
-  if (event.origin !== window.location.origin) return;
+  if (!ALLOWED_PARENT || event.origin !== ALLOWED_PARENT) return;
   const data = event.data || {};
   try {
     if (data.initAuth) await signIn();
